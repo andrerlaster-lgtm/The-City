@@ -11,14 +11,14 @@ in → expand → population grows. Full plan and acceptance criteria:
 `docs/STAGE-1-PLAN.md`.
 
 ## Current Stage
-Stage 1, milestones M0, M1 and M2 done and committed. **M3 (Buildings) is next.**
+Stage 1, milestones M0, M1 and M2 done, committed and verified. **M3 (Buildings) is planned, approved and ready for implementation** (`docs/M3-PLAN.md`).
 
 | # | Milestone | Status |
 |---|---|---|
 | M0 | Scaffold (Vite, TS, PixiJS, React, tests) | Done |
 | M1 | World and camera | Done |
 | M2 | Roads | Done |
-| M3 | Buildings | Next |
+| M3 | Buildings | Planned — ready for implementation |
 | M4 | Time and economy | Not started |
 | M5 | Citizens (first full gameplay loop) | Not started |
 | M6 | Save and load | Not started |
@@ -30,7 +30,7 @@ seven issues, and Claude then fixed them (see "M2 Completion" below).
 M2 committed 2026-10-04 ("M2: roads ...").
 
 ## Current Task
-None in progress. M2 committed without a recorded browser play-test.
+M3 — Buildings: plan approved 2026-10-04 and saved as `docs/M3-PLAN.md`. Implementation not started.
 
 ## Important Decisions
 - VS Code is the main development command center.
@@ -39,6 +39,9 @@ None in progress. M2 committed without a recorded browser play-test.
 - Stage 1 plan approved 2026-10-04 (stack, isometric 2.5D view, art generated
   in code, building names Cottage / Rowhouse / Farm / Workshop / Well).
 - No new dependencies without Andre's approval.
+- M3 (approved 2026-10-04): a building needs edge-to-edge road access to be
+  placed. Being connected to the entrance is a separate status/warning shown
+  in the info panel. Demolishing roads or buildings gives no refund.
 
 ## Current Architecture
 Core rule: **the simulation never knows the screen exists.**
@@ -109,9 +112,8 @@ Scripts: `npm run dev`, `npm test`, `npm run typecheck`, `npm run build`.
 - Tests: 95 passed / 95. Typecheck passed. Build passed.
 - The Vite build warns that the main JS chunk is over 500 kB. This doesn't
   block anything and can be optimized later.
-- **M2 was committed without a browser play-test of the fixes.** The camera
-  vs. tool drag, the disconnected-road colour and tree removal are verified
-  only by typecheck and build.
+- M2 browser play-test passed (Andre, 2026-10-04): drag, disconnected tint,
+  tree removal, tool vs. camera drag and previews all work in the live preview.
 - On touch screens, a one-finger drag with a tool active still pans the
   camera. pixi-viewport's `mouseButtons` setting only filters mouse input.
   Address this with M3 tools or in M7 polish.
@@ -168,13 +170,15 @@ passed.
 
 ## Next Step
 
-1. Play-test M2 in the browser (`npm run dev`).
-2. Begin **M3 — Buildings**: data definitions for the five buildings, a
-   build menu by category, a placement ghost with valid/invalid reasons,
-   costs charged through `applyCommand`, and an info panel on click. Move the
-   command types into `sim/commands.ts` as part of M3.
+1. Implement **M3 — Buildings** following `docs/M3-PLAN.md` (Codex or
+   Claude). Scope: five data-driven buildings, a build menu, a placement
+   ghost with reasons, road-access placement rules, the `place-building`
+   command (with the command types moved to `sim/commands.ts`), demolishing
+   buildings, and an info panel showing the connected status.
+2. Claude reviews the M3 diff, runs the tests, typecheck and build, then
+   Andre play-tests it in the browser.
 
 ## Last Updated
 
 Date: 2026-10-04
-AI used: Claude (review and M2 fixes)
+AI used: Claude (M2 review/fixes, M3 plan)
