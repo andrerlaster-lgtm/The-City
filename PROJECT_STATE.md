@@ -11,7 +11,7 @@ in → expand → population grows. Full plan and acceptance criteria:
 `docs/STAGE-1-PLAN.md`.
 
 ## Current Stage
-Stage 1, milestones M0–M3 done, verified and committed. **M4 (Time and economy) is next** (not started).
+Stage 1, milestones M0–M3 done, verified and committed. **M4 planned and ready for implementation** (`docs/M4-PLAN.md`).
 
 | # | Milestone | Status |
 |---|---|---|
@@ -19,7 +19,7 @@ Stage 1, milestones M0–M3 done, verified and committed. **M4 (Time and economy
 | M1 | World and camera | Done |
 | M2 | Roads | Done |
 | M3 | Buildings | Done |
-| M4 | Time and economy | Not started |
+| M4 | Time and economy | Planned, ready for implementation |
 | M5 | Citizens (first full gameplay loop) | Not started |
 | M6 | Save and load | Not started |
 | M7 | Polish and deploy (private Vercel preview) | Not started |
@@ -32,7 +32,7 @@ cleaned up the simulation code. Andre's browser play-test passed, and M3 is
 committed and pushed.
 
 ## Current Task
-None in progress. M4 planning is next.
+M4 — Time and economy: plan approved 2026-10-04 and saved as `docs/M4-PLAN.md`. Implementation has not started.
 
 ## Important Decisions
 - VS Code is the main development command center.
@@ -44,6 +44,15 @@ None in progress. M4 planning is next.
 - M3 (approved 2026-10-04): a building needs edge-to-edge road access to be
   placed. Being connected to the entrance is a separate status/warning shown
   in the info panel. Demolishing roads or buildings gives no refund.
+- M4 (approved 2026-10-04):
+  - Debt is allowed: upkeep is always charged and the treasury can go below
+    0. Building is blocked while in debt, and nothing is ever demolished
+    automatically.
+  - Taxes stay at 0 until M5 adds citizens, with no placeholder income.
+  - Road upkeep is `round(road tiles × 0.1)` per day, and the entrance is
+    free.
+  - Every building pays upkeep, including disconnected ones.
+  - New games start at 1×.
 
 ## Current Architecture
 Core rule: **the simulation never knows the screen exists.**
@@ -145,7 +154,7 @@ Repository: https://github.com/andrerlaster-lgtm/The-City
 
 Branch: `main`
 
-Working tree: clean after the M3 commit, which is pushed to `origin/main`.
+Working tree: clean. M3 is pushed to `origin/main`. The M4 plan commit is local only and not pushed.
 
 ## Vercel
 
@@ -217,15 +226,18 @@ Validation: 125 tests passed. `npm run typecheck`, `npm run build` and
 
 ## Next Step
 
-Plan **M4 — Time and economy**:
-- a fixed-step loop with pause, 1×, 2× and 3×
-- a running date
-- daily upkeep and taxes
-- an income breakdown in the top bar
-- the approved rule: an empty treasury pauses immigration and never demolishes
-  anything
+1. Implement **M4 — Time and economy** following `docs/M4-PLAN.md` (Codex
+   or Claude). Scope:
+   - a fixed-step clock (`app/loop.ts`) with pause, 1×, 2× and 3×
+   - the daily economy step inside `Simulation.tick()`
+   - upkeep, a ledger, and taxes that stay at 0
+   - a `set-speed` command
+   - speed controls, the per-day treasury figure, the breakdown popover and
+     the debt banner
+2. Claude reviews the M4 changes and runs the tests, typecheck and build.
+   Then Andre play-tests in the browser.
 
 ## Last Updated
 
 Date: 2026-10-04
-AI used: Codex (M3 implementation), Claude (M3 reviews and fix pass)
+AI used: Claude (M4 plan); Codex (M3 implementation), Claude (M3 reviews and fix pass)
