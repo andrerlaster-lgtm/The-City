@@ -38,3 +38,23 @@ export function screenToTile(sx: number, sy: number): TileCoord {
     y: Math.floor((sy / halfH - sx / halfW) / 2),
   };
 }
+
+/**
+ * Tiles from `from` to `to` inclusive, stepping one axis at a time so every
+ * consecutive pair shares an edge (4-connected). Ties step y first.
+ */
+export function tileLine(from: TileCoord, to: TileCoord): TileCoord[] {
+  const nx = Math.abs(to.x - from.x);
+  const ny = Math.abs(to.y - from.y);
+  const sx = to.x > from.x ? 1 : -1;
+  const sy = to.y > from.y ? 1 : -1;
+  let x = from.x;
+  let y = from.y;
+  const out: TileCoord[] = [{ x, y }];
+  for (let ix = 0, iy = 0; ix < nx || iy < ny; ) {
+    // Compare (ix + 0.5) / nx with (iy + 0.5) / ny in integers.
+    if ((1 + 2 * ix) * ny < (1 + 2 * iy) * nx) { x += sx; ix++; } else { y += sy; iy++; }
+    out.push({ x, y });
+  }
+  return out;
+}

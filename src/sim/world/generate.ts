@@ -10,6 +10,7 @@ import { WORLDGEN } from '../../data/balance';
 import { TerrainId, TreeKind } from '../../data/terrain';
 import { fractalNoise } from './noise';
 import { createEmptyWorld, type WorldMap } from './World';
+import { placeSettlementEntrance } from '../roads';
 
 export function generateWorld(seed: number, width: number, height: number): WorldMap {
   const world = createEmptyWorld(width, height);
@@ -38,6 +39,7 @@ export function generateWorld(seed: number, width: number, height: number): Worl
     world.variant[i] = rng.int(0, 255);
     if (terrain === TerrainId.Grass) world.trees[i] = pickTree(moisture[i] ?? 0, forestMoisture, rng);
   }
+  placeSettlementEntrance(world);
   return world;
 }
 

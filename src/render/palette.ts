@@ -23,6 +23,7 @@ export const PALETTE = {
   pine: 0x3f7d4a,
   pineDark: 0x2e5f3a,
   road: 0x6f6a63,
+  roadDisconnected: 0xa8705a,
   roofRed: 0xc4553b,
   wallCream: 0xf2e3c6,
   shadow: 0x1a2219,

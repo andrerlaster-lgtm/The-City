@@ -5,12 +5,14 @@
 import { Application, Container, CullerPlugin, extensions } from 'pixi.js';
 import type { Viewport } from 'pixi-viewport';
 import type { TileCoord } from '../core/types';
+import { toIndex } from '../core/grid';
 import type { WorldMap } from '../sim/world/World';
 import { buildTerrainTextures } from './art/terrainArt';
 import { buildTreeTextures } from './art/treeArt';
-import { createCamera, mapExtent, worldOffset } from './camera';
+import { createCamera, mapExtent, setToolDrag, worldOffset } from './camera';
 import { HoverLayer } from './layers/HoverLayer';
 import { ObjectLayer } from './layers/ObjectLayer';
+import { RoadLayer } from './layers/RoadLayer';
 import { TerrainLayer } from './layers/TerrainLayer';
 import { PALETTE } from './palette';
 
@@ -23,6 +25,7 @@ export class Renderer {
   readonly world = new Container({ label: 'world' });
   private terrain: TerrainLayer | null = null;
   private objects: ObjectLayer | null = null;
+  private roads: RoadLayer | null = null;
   private hover: HoverLayer | null = null;
 
   async init(host: HTMLElement): Promise<void> {
@@ -47,11 +50,13 @@ export class Renderer {
     this.world.position.set(offset.x, offset.y);
     this.terrain = new TerrainLayer(buildTerrainTextures(renderer));
     this.objects = new ObjectLayer(buildTreeTextures(renderer));
+    this.roads = new RoadLayer();
     this.hover = new HoverLayer(reduceMotion);
 
     this.terrain.build(world);
     this.objects.build(world);
-    this.world.addChild(this.terrain.container, this.hover.container, this.objects.container);
+    this.roads.build(world);
+    this.world.addChild(this.terrain.container, this.roads.container, this.hover.container, this.objects.container);
     this.camera.addChild(this.world);
     this.app.stage.addChild(this.camera);
 
@@ -65,6 +70,16 @@ export class Renderer {
 
   setHoveredTile(tile: TileCoord | null): void {
     this.hover?.setTile(tile);
+  }
+
+  /** Redraws roads and trees on tiles the simulation changed. */
+  refreshTiles(world: Readonly<WorldMap>, tiles: readonly TileCoord[]): void {
+    this.roads?.refresh(world, tiles);
+    for (const { x, y } of tiles) this.objects?.applyTree(world, toIndex(x, y, world.width));
+  }
+
+  setToolActive(active: boolean): void {
+    if (this.camera) setToolDrag(this.camera, active);
   }
 
   destroy(): void {

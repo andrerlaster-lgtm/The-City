@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EventBus } from '../../src/core/events';
-import { fromIndex, screenToTile, tileToScreen, toIndex } from '../../src/core/grid';
+import { fromIndex, screenToTile, tileLine, tileToScreen, toIndex } from '../../src/core/grid';
 import { Rng } from '../../src/core/rng';
 
 describe('Rng', () => {
@@ -60,5 +60,37 @@ describe('EventBus', () => {
     off();
     bus.emit('ping', 2);
     expect(got).toEqual([1]);
+  });
+});
+
+describe('tileLine', () => {
+  const fourConnected = (path: { x: number; y: number }[]) =>
+    path.slice(1).every((t, i) => Math.abs(t.x - path[i]!.x) + Math.abs(t.y - path[i]!.y) === 1);
+
+  it('includes both ends and a single tile for a zero-length line', () => {
+    expect(tileLine({ x: 2, y: 3 }, { x: 2, y: 3 })).toEqual([{ x: 2, y: 3 }]);
+    const path = tileLine({ x: 0, y: 0 }, { x: 4, y: 0 });
+    expect(path).toHaveLength(5);
+    expect(path.at(-1)).toEqual({ x: 4, y: 0 });
+  });
+
+  it('stays 4-connected for screen-horizontal and screen-vertical (tile-diagonal) drags', () => {
+    // On the iso map, a horizontal screen drag moves (+1, -1) per tile; vertical moves (+1, +1).
+    const across = tileLine({ x: 10, y: 10 }, { x: 16, y: 4 });
+    const down = tileLine({ x: 10, y: 10 }, { x: 15, y: 15 });
+    expect(fourConnected(across)).toBe(true);
+    expect(fourConnected(down)).toBe(true);
+    expect(across).toHaveLength(13);
+    expect(down).toHaveLength(11);
+  });
+
+  it('stays 4-connected in every direction and is deterministic', () => {
+    for (const [tx, ty] of [[7, 3], [-5, 2], [-4, -9], [3, -8], [1, 6]] as const) {
+      const path = tileLine({ x: 0, y: 0 }, { x: tx, y: ty });
+      expect(fourConnected(path)).toBe(true);
+      expect(path.at(-1)).toEqual({ x: tx, y: ty });
+      expect(path).toHaveLength(Math.abs(tx) + Math.abs(ty) + 1);
+      expect(tileLine({ x: 0, y: 0 }, { x: tx, y: ty })).toEqual(path);
+    }
   });
 });

@@ -45,3 +45,9 @@ export function createCamera(app: Application, extent: MapExtent): Viewport {
   viewport.moveCenter(worldWidth / 2, worldHeight / 2);
   return viewport;
 }
+
+/** While a tool is active, left-drag belongs to the tool; middle/right still pan. */
+export function setToolDrag(viewport: Viewport, toolActive: boolean): void {
+  // Re-adding the plugin replaces the old one and keeps its place in the plugin order.
+  viewport.drag({ mouseButtons: toolActive ? 'middle-right' : 'all' });
+}

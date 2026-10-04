@@ -4,7 +4,7 @@
  */
 import type { FederatedPointerEvent } from 'pixi.js';
 import type { Viewport } from 'pixi-viewport';
-import { inBounds, screenToTile } from '../core/grid';
+import { inBounds, screenToTile, tileLine } from '../core/grid';
 import type { TileCoord } from '../core/types';
 
 export function attachHover(
@@ -47,5 +47,49 @@ export function attachHover(
     viewport.off('pointermove', move);
     canvas.removeEventListener('pointerleave', leave);
     viewport.off('moved', update);
+  };
+}
+
+/** Drag paints each crossed tile once (4-connected); release delivers one deterministic command. */
+export function attachTileDrag(
+  viewport: Viewport,
+  screenToTileAt: (x: number, y: number) => TileCoord | null,
+  mapWidth: number,
+  mapHeight: number,
+  onPreview: (tiles: TileCoord[] | null) => void,
+  onCommit: (tiles: TileCoord[]) => void,
+): () => void {
+  let drawing = false;
+  let tiles: TileCoord[] = [];
+  let seen = new Set<string>();
+  let last: TileCoord | null = null;
+  const append = (tile: TileCoord) => {
+    if (!inBounds(tile.x, tile.y, mapWidth, mapHeight)) return;
+    const key = `${tile.x},${tile.y}`;
+    if (!seen.has(key)) { seen.add(key); tiles.push(tile); }
+  };
+  const add = (e: FederatedPointerEvent) => {
+    const tile = screenToTileAt(e.global.x, e.global.y);
+    if (!tile) return;
+    if (last) tileLine(last, tile).forEach(append); else append(tile);
+    last = tile;
+    onPreview([...tiles]);
+  };
+  const down = (e: FederatedPointerEvent) => {
+    if (e.button !== 0) return;
+    drawing = true; tiles = []; seen = new Set(); last = null; add(e);
+  };
+  const move = (e: FederatedPointerEvent) => { if (drawing) add(e); };
+  const up = () => {
+    if (!drawing) return;
+    drawing = false;
+    const done = tiles; tiles = []; seen.clear(); last = null; onPreview(null);
+    if (done.length) onCommit(done);
+  };
+  viewport.on('pointerdown', down); viewport.on('pointermove', move);
+  viewport.on('pointerup', up); viewport.on('pointerupoutside', up);
+  return () => {
+    viewport.off('pointerdown', down); viewport.off('pointermove', move);
+    viewport.off('pointerup', up); viewport.off('pointerupoutside', up);
   };
 }

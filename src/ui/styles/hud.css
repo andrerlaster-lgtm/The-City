@@ -58,6 +58,36 @@ body {
   animation: slide-down 420ms var(--ease-out) both;
 }
 
+.tool-bar {
+  position: absolute;
+  top: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  background: var(--panel-bg);
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(10px);
+  white-space: nowrap;
+}
+
+.tool-bar button {
+  padding: 7px 11px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.tool-bar button[aria-pressed="true"] { background: var(--accent); color: var(--void); }
+.tool-bar__preview, .tool-bar__money { font-size: 12px; color: var(--text-muted); }
+.tool-bar__preview--invalid { color: #ff9c83; }
+
 .top-bar__title {
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -157,6 +187,7 @@ body {
   .top-bar__title {
     display: none;
   }
+  .tool-bar { top: 150px; max-width: calc(100vw - 16px); flex-wrap: wrap; justify-content: center; white-space: normal; }
   .top-bar__stats {
     display: grid;
     grid-template-columns: 1fr 1fr;

@@ -15,6 +15,11 @@ export interface WorldMap {
   trees: Uint8Array;
   /** Cosmetic variation seed per tile (0–255), so art never looks tiled. */
   variant: Uint8Array;
+  /** Road occupancy; the settlement entrance is present when the world is created. */
+  roads: Uint8Array;
+  /** Road tiles that can reach the settlement entrance. */
+  roadConnected: Uint8Array;
+  entranceIndex: number;
 }
 
 export function createEmptyWorld(width: number, height: number): WorldMap {
@@ -25,6 +30,9 @@ export function createEmptyWorld(width: number, height: number): WorldMap {
     terrain: new Uint8Array(size),
     trees: new Uint8Array(size),
     variant: new Uint8Array(size),
+    roads: new Uint8Array(size),
+    roadConnected: new Uint8Array(size),
+    entranceIndex: -1,
   };
 }
 
