@@ -20,6 +20,8 @@ export interface WorldMap {
   /** Road tiles that can reach the settlement entrance. */
   roadConnected: Uint8Array;
   entranceIndex: number;
+  /** Building entity id per occupied tile; zero means empty. */
+  buildingAt: Int32Array;
 }
 
 export function createEmptyWorld(width: number, height: number): WorldMap {
@@ -33,6 +35,7 @@ export function createEmptyWorld(width: number, height: number): WorldMap {
     roads: new Uint8Array(size),
     roadConnected: new Uint8Array(size),
     entranceIndex: -1,
+    buildingAt: new Int32Array(size),
   };
 }
 

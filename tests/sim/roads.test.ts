@@ -148,7 +148,7 @@ describe('Simulation.applyCommand', () => {
     const placed = sim.applyCommand({ type: 'place-roads', tiles: [freeNeighbour(sim), ...outside] });
     expect(placed).toMatchObject({ ok: false, reason: 'Roads require buildable land.' });
     expect(sim.snapshot().treasury).toBe(start);
-    expect(sim.applyCommand({ type: 'demolish', tiles: outside })).toMatchObject({ ok: false, reason: 'No roads to remove.' });
+    expect(sim.applyCommand({ type: 'demolish', tiles: outside })).toMatchObject({ ok: false, reason: 'Nothing to remove.' });
   });
 
   it('demolishes roads, reports changed tiles, and fails when nothing was removed', () => {
@@ -160,7 +160,7 @@ describe('Simulation.applyCommand', () => {
     expect(result).toMatchObject({ ok: true, cost: 0, treasury });
     expect(result.changedTiles).toContainEqual(tile);
     expect(sim.getWorld().roads[sim.getWorld().entranceIndex]).toBe(1);
-    expect(sim.applyCommand({ type: 'demolish', tiles: [tile] })).toMatchObject({ ok: false, reason: 'No roads to remove.' });
+    expect(sim.applyCommand({ type: 'demolish', tiles: [tile] })).toMatchObject({ ok: false, reason: 'Nothing to remove.' });
   });
 });
 

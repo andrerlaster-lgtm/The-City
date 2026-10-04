@@ -11,11 +11,13 @@ function describe(tool: Tool | null, preview: ToolPreview | null): { text: strin
   }
   if (preview?.kind === 'demolish') {
     return preview.removable
-      ? { text: `Remove ${preview.removable} road tile${preview.removable === 1 ? '' : 's'}`, invalid: false }
-      : { text: 'No removable roads here', invalid: true };
+      ? { text: `Remove ${preview.removable} item${preview.removable === 1 ? '' : 's'}`, invalid: false }
+      : { text: 'Nothing removable here', invalid: true };
   }
+  if (preview?.kind === 'build') return { text: preview.ok ? `${preview.cost} coins · ready` : preview.reason ?? 'Cannot place here', invalid: !preview.ok };
   if (tool === 'road') return { text: 'Drag across land to build · 10 per tile', invalid: false };
   if (tool === 'demolish') return { text: 'Drag across roads to demolish', invalid: false };
+  if (tool && typeof tool === 'object') return { text: 'Click a tile to place · Escape cancels', invalid: false };
   return { text: 'Pick a tool · right-drag pans while building', invalid: false };
 }
 

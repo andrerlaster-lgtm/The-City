@@ -4,6 +4,7 @@
  * Systems add their own slices as they land (world, roads, buildings, …).
  */
 import type { WorldMap } from './world/World';
+import type { BuildingInstance } from './buildings/buildings';
 
 export interface GameState {
   seed: number;
@@ -12,4 +13,6 @@ export interface GameState {
   tick: number;
   treasury: number;
   world: WorldMap;
+  buildings: BuildingInstance[];
+  nextEntityId: number;
 }

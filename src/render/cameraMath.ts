@@ -16,6 +16,14 @@ export interface MapExtent {
   maxY: number;
 }
 
+/**
+ * Bottom (front) corner of a square footprint whose top-left tile is
+ * (originX, originY). Building sprites stand on this point.
+ */
+export function footprintBottom(originX: number, originY: number, size: number): { x: number; y: number } {
+  return tileToScreen(originX + size, originY + size);
+}
+
 /** Bounding box of the whole map diamond (plus its skirt) in world pixels. */
 export function mapExtent(width: number, height: number): MapExtent {
   return {

@@ -57,12 +57,15 @@ export function attachTileDrag(
   mapWidth: number,
   mapHeight: number,
   onPreview: (tiles: TileCoord[] | null) => void,
-  onCommit: (tiles: TileCoord[]) => void,
+  onCommit: (tiles: TileCoord[], click: boolean) => void,
+  onClick?: (tile: TileCoord) => void,
 ): () => void {
   let drawing = false;
   let tiles: TileCoord[] = [];
   let seen = new Set<string>();
   let last: TileCoord | null = null;
+  let downAt: { x: number; y: number } | null = null;
+  let downTile: TileCoord | null = null;
   const append = (tile: TileCoord) => {
     if (!inBounds(tile.x, tile.y, mapWidth, mapHeight)) return;
     const key = `${tile.x},${tile.y}`;
@@ -77,14 +80,19 @@ export function attachTileDrag(
   };
   const down = (e: FederatedPointerEvent) => {
     if (e.button !== 0) return;
+    downAt = { x: e.global.x, y: e.global.y };
+    downTile = screenToTileAt(e.global.x, e.global.y);
     drawing = true; tiles = []; seen = new Set(); last = null; add(e);
   };
   const move = (e: FederatedPointerEvent) => { if (drawing) add(e); };
-  const up = () => {
+  const up = (e: FederatedPointerEvent) => {
     if (!drawing) return;
     drawing = false;
+    const click = Boolean(downAt && downTile && Math.hypot(e.global.x - downAt.x, e.global.y - downAt.y) <= 6);
+    if (click && downTile) onClick?.(downTile);
+    downAt = null; downTile = null;
     const done = tiles; tiles = []; seen.clear(); last = null; onPreview(null);
-    if (done.length) onCommit(done);
+    if (done.length) onCommit(done, click);
   };
   viewport.on('pointerdown', down); viewport.on('pointermove', move);
   viewport.on('pointerup', up); viewport.on('pointerupoutside', up);

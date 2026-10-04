@@ -9,12 +9,17 @@ import { toIndex } from '../core/grid';
 import type { WorldMap } from '../sim/world/World';
 import { buildTerrainTextures } from './art/terrainArt';
 import { buildTreeTextures } from './art/treeArt';
+import { buildBuildingTextures } from './art/buildingArt';
 import { createCamera, mapExtent, setToolDrag, worldOffset } from './camera';
 import { HoverLayer } from './layers/HoverLayer';
 import { ObjectLayer } from './layers/ObjectLayer';
 import { RoadLayer } from './layers/RoadLayer';
 import { TerrainLayer } from './layers/TerrainLayer';
 import { PALETTE } from './palette';
+import { BUILDINGS, type BuildingDefinition } from '../data/buildings';
+import type { BuildingInstance } from '../sim/buildings/buildings';
+import type { BuildingPreview } from '../sim/buildings/placement';
+import { PlacementGhost } from './placementGhost';
 
 extensions.add(CullerPlugin);
 
@@ -27,6 +32,8 @@ export class Renderer {
   private objects: ObjectLayer | null = null;
   private roads: RoadLayer | null = null;
   private hover: HoverLayer | null = null;
+  private buildingTextures = new Map<string, import('./art/buildingArt').BuildingTexture>();
+  private ghost: PlacementGhost | null = null;
 
   async init(host: HTMLElement): Promise<void> {
     await this.app.init({
@@ -49,14 +56,16 @@ export class Renderer {
     const offset = worldOffset(extent);
     this.world.position.set(offset.x, offset.y);
     this.terrain = new TerrainLayer(buildTerrainTextures(renderer));
-    this.objects = new ObjectLayer(buildTreeTextures(renderer));
+    this.buildingTextures = buildBuildingTextures(renderer, BUILDINGS);
+    this.objects = new ObjectLayer(buildTreeTextures(renderer), this.buildingTextures);
     this.roads = new RoadLayer();
     this.hover = new HoverLayer(reduceMotion);
+    this.ghost = new PlacementGhost();
 
     this.terrain.build(world);
     this.objects.build(world);
     this.roads.build(world);
-    this.world.addChild(this.terrain.container, this.roads.container, this.hover.container, this.objects.container);
+    this.world.addChild(this.terrain.container, this.roads.container, this.objects.container, this.hover.container, this.ghost.container);
     this.camera.addChild(this.world);
     this.app.stage.addChild(this.camera);
 
@@ -76,6 +85,17 @@ export class Renderer {
   refreshTiles(world: Readonly<WorldMap>, tiles: readonly TileCoord[]): void {
     this.roads?.refresh(world, tiles);
     for (const { x, y } of tiles) this.objects?.applyTree(world, toIndex(x, y, world.width));
+  }
+
+  refreshBuildings(world: Readonly<WorldMap>, buildings: readonly BuildingInstance[], tiles: readonly TileCoord[]): void {
+    for (const { x, y } of tiles) if (x >= 0 && y >= 0 && x < world.width && y < world.height) this.objects?.applyTree(world, toIndex(x, y, world.width));
+    this.objects?.applyBuildings(buildings);
+  }
+
+  setSelectedBuilding(id: number | null): void { this.objects?.setSelected(id); }
+
+  updatePlacement(definition: BuildingDefinition | null, cursor: TileCoord | null, preview: BuildingPreview | null): void {
+    this.ghost?.update(definition, definition ? this.buildingTextures.get(definition.art) : undefined, cursor, preview);
   }
 
   setToolActive(active: boolean): void {

@@ -11,26 +11,28 @@ in → expand → population grows. Full plan and acceptance criteria:
 `docs/STAGE-1-PLAN.md`.
 
 ## Current Stage
-Stage 1, milestones M0, M1 and M2 done, committed and verified. **M3 (Buildings) is planned, approved and ready for implementation** (`docs/M3-PLAN.md`).
+Stage 1, milestones M0–M3 done, verified and committed. **M4 (Time and economy) is next** (not started).
 
 | # | Milestone | Status |
 |---|---|---|
 | M0 | Scaffold (Vite, TS, PixiJS, React, tests) | Done |
 | M1 | World and camera | Done |
 | M2 | Roads | Done |
-| M3 | Buildings | Planned — ready for implementation |
+| M3 | Buildings | Done |
 | M4 | Time and economy | Not started |
 | M5 | Citizens (first full gameplay loop) | Not started |
 | M6 | Save and load | Not started |
 | M7 | Polish and deploy (private Vercel preview) | Not started |
 
 ## Last Completed Step
-2026-10-04: M2 review fixes (Claude). Codex built M2. Claude's review found
-seven issues, and Claude then fixed them (see "M2 Completion" below).
-M2 committed 2026-10-04 ("M2: roads ...").
+2026-10-04: M3 — Buildings implemented by Codex from `docs/M3-PLAN.md`, then
+two Claude reviews. Claude's fix pass corrected where buildings, the
+placement ghost and roads are drawn (they were offset from their tiles) and
+cleaned up the simulation code. Andre's browser play-test passed, and M3 is
+committed and pushed.
 
 ## Current Task
-M3 — Buildings: plan approved 2026-10-04 and saved as `docs/M3-PLAN.md`. Implementation not started.
+None in progress. M4 planning is next.
 
 ## Important Decisions
 - VS Code is the main development command center.
@@ -51,7 +53,7 @@ Core rule: **the simulation never knows the screen exists.**
   `tests/architecture/boundaries.test.ts`.
   - `Simulation.ts` owns `GameState` (seed, rng state, tick, treasury, world).
     `tick()` currently only advances the hour; returns changed tiles/buildings
-    (empty for now).
+    (empty until later simulation systems land).
   - `world/` — `WorldMap` as flat typed arrays (`y * width + x`): terrain,
     trees, variant. Own ~40-line value noise in `noise.ts`, generation in
     `generate.ts`.
@@ -60,22 +62,25 @@ Core rule: **the simulation never knows the screen exists.**
     the 4-bit N/E/S/W neighbour mask, the BFS from the entrance (returns
     which tiles' connected state flipped), and edge-entrance placement.
     `WorldMap` gains `roads`, `roadConnected` and `entranceIndex`.
+  - `buildings/` — square footprint previews and ordered validation, building
+    instances/occupancy, edge road access and entrance-connected flags.
   - `Simulation.applyCommand(PlayerCommand)` is the single entry point for
-    player changes (`place-roads`, `demolish`). It returns `ok` / `reason` /
-    `cost` / `changedTiles` / `treasury`. The command types live in
-    `Simulation.ts` for now.
+    player changes (`place-roads`, `place-building`, `demolish`). Commands live
+    in `sim/commands.ts`; results include changed tiles/buildings and treasury.
 - `src/core/` — rng, typed event bus, grid/iso math (including `tileLine`,
   a 4-connected tile path used by drag input), shared types.
-- `src/data/` — data tables: `terrain.ts`, `balance.ts` (128×128 map, starting
-  treasury, etc.).
+- `src/data/` — data tables: `terrain.ts`, `buildings.ts`, `balance.ts`
+  (128×128 map, starting treasury, etc.).
 - `src/render/` — PixiJS only: `Renderer.ts`, `camera.ts` (pixi-viewport),
   `cameraMath.ts` (pure, tested), `layers/` (Terrain, Object, Hover),
-  `art/` (procedurally drawn terrain and trees), `palette.ts`.
+  `art/` (procedurally drawn terrain, trees and five buildings), `palette.ts`,
+  placement ghost.
   `RoadLayer` draws disconnected roads in `roadDisconnected`.
   `Renderer.refreshTiles` redraws roads and trees for changed tiles.
   `setToolDrag` in `camera.ts` hands left-drag to the active tool.
 - `src/input/` — pointer → tile hover, tile drag strokes, keyboard pan.
-- `src/ui/` — React HUD overlay: `App`, `TopBar`, `ToolBar`, `TileInfo`, CSS tokens.
+- `src/ui/` — React HUD overlay: `App`, `TopBar`, `ToolBar`, `BuildMenu`,
+  `InfoPanel`, `TileInfo`, CSS tokens.
   Reads state via a small `Store` (useSyncExternalStore-shaped).
 - `src/app/` — `Game.ts` composition root wiring sim + renderer + input + UI;
   `store.ts`.
@@ -103,26 +108,32 @@ Scripts: `npm run dev`, `npm test`, `npm run typecheck`, `npm run build`.
   cost and demolish previews in the toolbar; auto-connecting road pieces;
   disconnected roads tinted; a pre-placed entrance on a map edge; trees
   cleared under roads.
-- Tests: rng, grid (including `tileLine`), event bus, calendar, simulation
-  basics, world generation, roads/commands/entrance, camera math, sim-purity
-  and file-size guards.
+- Buildings: Cottage, Rowhouse, Farm, Workshop and Well; grouped build menu,
+  cost dimming, placement preview/reasons, edge-to-edge road access, connected
+  status, selection/info panel, whole-building and mixed road/building
+  demolition with no refund. Trees clear under buildings.
+- Tests: 122 passing across data, footprint/placement/access/demolition,
+  determinism, roads, world generation, camera math, sim-purity and file-size
+  guards.
 
 ## Known Issues (verified 2026-10-04)
 
-- Tests: 95 passed / 95. Typecheck passed. Build passed.
+- M3 validation: 125 tests passed; typecheck, production build and
+  `git diff --check` passed.
+- M3 browser play-test passed (Andre, 2026-10-04, after the rendering fix):
+  road/ghost/building alignment, placement reasons, all five buildings, depth,
+  info panel connected/disconnected, and demolish with no refund.
 - The Vite build warns that the main JS chunk is over 500 kB. This doesn't
   block anything and can be optimized later.
 - M2 browser play-test passed (Andre, 2026-10-04): drag, disconnected tint,
   tree removal, tool vs. camera drag and previews all work in the live preview.
-- On touch screens, a one-finger drag with a tool active still pans the
-  camera. pixi-viewport's `mouseButtons` setting only filters mouse input.
-  Address this with M3 tools or in M7 polish.
+- On touch screens, one-finger drag with a drag tool may still pan the camera;
+  pixi-viewport's `mouseButtons` setting only filters mouse input. Revisit in
+  M7 polish.
 - If no edge tile is buildable, no entrance is placed (`entranceIndex = -1`)
   and every road shows as disconnected. This didn't happen for any tested seed.
 - The toolbar repeats the treasury that the top bar already shows. This is
   cosmetic.
-- `PlayerCommand` lives in `Simulation.ts`. The plan puts it in
-  `sim/commands.ts`. Move it when M3 adds `PlaceBuilding`.
 - The game clock doesn't run yet: the app never calls `Simulation.tick()`.
   This is expected until M4.
 - Top-bar population, free housing and open jobs are placeholders until M5.
@@ -134,8 +145,7 @@ Repository: https://github.com/andrerlaster-lgtm/The-City
 
 Branch: `main`
 
-Working tree: clean. `AGENTS.md` and `CLAUDE.md` are
-committed.
+Working tree: clean after the M3 commit, which is pushed to `origin/main`.
 
 ## Vercel
 
@@ -168,17 +178,54 @@ Claude's review fixes:
 Validation: `npm test` (95 passed), `npm run typecheck`, `npm run build`, all
 passed.
 
+## M3 Completion (2026-10-04)
+
+Codex built the approved `docs/M3-PLAN.md` scope:
+- five data-driven buildings
+- centred square footprints
+- placement that is checked in a fixed order and is all-or-nothing
+- edge-to-edge road access, kept separate from entrance connection
+- deterministic ids and occupancy
+- place-road, place-building and mixed-demolish commands
+- no refunds
+- procedural art, placement ghost, build menu, info panel, Escape to cancel
+
+Codex's follow-up added the entrance-tile rejection and a stronger
+determinism test.
+
+Claude's fix pass:
+- **Footprint position helper.** `render/cameraMath.ts` `footprintBottom`
+  now returns the footprint's bottom corner. Before, it returned the east
+  corner, and its tests locked in the wrong values.
+- **Building sprites.** They anchor on that corner using the texture's
+  `anchorY`. The selection outline follows the sprite.
+- **Placement ghost.** It now draws exactly the tiles the simulation checked
+  (`preview.tiles`), with diamonds positioned from each tile's top corner.
+- **Roads.** `RoadLayer` was drawn half a tile right (a bug since M2).
+  Road connectors now point to the edge each road tile shares with its
+  neighbour.
+- **Simulation cleanup:**
+  - The terrain reason comes from data ("Needs grass").
+  - The duplicate building check in `previewRoads` is gone.
+  - A shared `buildingIdsAt` helper replaces the hand-written index math
+    in `Simulation`.
+  - Dead code is removed (`occupancyTiles`, `asBuildingId`, the `'generic'`
+    texture lookups).
+
+Validation: 125 tests passed. `npm run typecheck`, `npm run build` and
+`git diff --check` all passed.
+
 ## Next Step
 
-1. Implement **M3 — Buildings** following `docs/M3-PLAN.md` (Codex or
-   Claude). Scope: five data-driven buildings, a build menu, a placement
-   ghost with reasons, road-access placement rules, the `place-building`
-   command (with the command types moved to `sim/commands.ts`), demolishing
-   buildings, and an info panel showing the connected status.
-2. Claude reviews the M3 diff, runs the tests, typecheck and build, then
-   Andre play-tests it in the browser.
+Plan **M4 — Time and economy**:
+- a fixed-step loop with pause, 1×, 2× and 3×
+- a running date
+- daily upkeep and taxes
+- an income breakdown in the top bar
+- the approved rule: an empty treasury pauses immigration and never demolishes
+  anything
 
 ## Last Updated
 
 Date: 2026-10-04
-AI used: Claude (M2 review/fixes, M3 plan)
+AI used: Codex (M3 implementation), Claude (M3 reviews and fix pass)

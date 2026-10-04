@@ -75,6 +75,7 @@ export function previewRoads(world: Readonly<WorldMap>, tiles: readonly TileCoor
   for (const tile of tiles) {
     if (!inBounds(tile.x, tile.y, world.width, world.height)) { invalid.push(tile); continue; }
     const index = toIndex(tile.x, tile.y, world.width);
+    if ((world.buildingAt[index] ?? 0) !== 0) { invalid.push(tile); continue; }
     if (unique.has(index) || world.roads[index] === 1) continue;
     unique.add(index);
     if (!isBuildableTerrain(world, tile.x, tile.y)) invalid.push(tile);

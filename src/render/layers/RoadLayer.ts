@@ -39,16 +39,13 @@ export class RoadLayer {
     // Roads that can't reach the settlement entrance are drawn in a warning tone.
     const color = world.roadConnected[index] === 1 ? PALETTE.road : PALETTE.roadDisconnected;
     const g = new Graphics();
-    const centerX = W / 2; const centerY = H / 2;
-    g.poly([centerX, 5, W - 6, centerY, centerX, H - 5, 6, centerY]).fill(color);
-    const midX = W / 2; const midY = H / 2;
-    const width = 9;
-    g.moveTo(midX, midY);
-    if (mask & 1) g.lineTo(midX, 0);
-    g.moveTo(midX, midY); if (mask & 2) g.lineTo(W, midY);
-    g.moveTo(midX, midY); if (mask & 4) g.lineTo(midX, H);
-    g.moveTo(midX, midY); if (mask & 8) g.lineTo(0, midY);
-    if (mask) g.stroke({ width, color, cap: 'round' });
+    // Local origin is the tile's top corner (same as terrain and hover); the centre is (0, H/2).
+    g.poly([0, 5, W / 2 - 6, H / 2, 0, H - 5, -W / 2 + 6, H / 2]).fill(color);
+    // Connectors run from the centre to the edge shared with each road neighbour:
+    // N (y-1) is up-right, E (x+1) down-right, S (y+1) down-left, W (x-1) up-left.
+    const edges: readonly [number, number, number][] = [[1, W / 4, H / 4], [2, W / 4, 3 * H / 4], [4, -W / 4, 3 * H / 4], [8, -W / 4, H / 4]];
+    for (const [bit, ex, ey] of edges) if (mask & bit) g.moveTo(0, H / 2).lineTo(ex, ey);
+    if (mask) g.stroke({ width: 9, color, cap: 'round' });
     const pos = tileToScreen(x, y);
     g.position.set(pos.x, pos.y);
     g.zIndex = (x + y) * 4 + 1;
