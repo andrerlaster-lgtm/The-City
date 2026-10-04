@@ -132,8 +132,8 @@ Repository: https://github.com/andrerlaster-lgtm/The-City
 
 Branch: `main`
 
-Working tree: clean except `AGENTS.MD` and `CLAUDE.MD`, which are untracked
-on purpose (not part of the M2 commit).
+Working tree: clean except `CLAUDE.md`, which is untracked. `AGENTS.md` is
+committed.
 
 ## Vercel
 
