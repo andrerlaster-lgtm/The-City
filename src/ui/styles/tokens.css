@@ -1,0 +1,28 @@
+/* Design tokens. Mirror of render/palette.ts for the map colours. */
+:root {
+  --void: #243128;
+  --grass: #8fbf6a;
+  --grass-shade: #5f8a45;
+  --water: #5aa9c9;
+  --roof-red: #c4553b;
+  --wall-cream: #f2e3c6;
+
+  --panel-bg: rgba(28, 37, 30, 0.82);
+  --panel-border: rgba(242, 227, 198, 0.14);
+  --panel-shadow: 0 10px 30px rgba(10, 14, 10, 0.35);
+  --text: #f6efe0;
+  --text-muted: #b9b3a2;
+  --accent: #e8a33d;
+  --good: #8fd06a;
+  --bad: #e2674f;
+
+  --radius-lg: 14px;
+  --radius-md: 10px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --font-ui: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-num: ui-monospace, 'SF Mono', Menlo, monospace;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
