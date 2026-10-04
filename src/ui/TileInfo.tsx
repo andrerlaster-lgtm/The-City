@@ -1,0 +1,20 @@
+import type { HoverInfo } from '../app/Game';
+
+/** Small chip in the bottom-left describing the tile under the cursor. */
+export function TileInfo({ info }: { info: HoverInfo | null }) {
+  return (
+    <div className={`tile-info${info ? ' tile-info--visible' : ''}`} aria-live="polite">
+      {info && (
+        <>
+          <span className="tile-info__terrain">
+            {info.terrain}
+            {info.wooded ? ' · Trees' : ''}
+          </span>
+          <span className="tile-info__coord">
+            {info.tile.x}, {info.tile.y}
+          </span>
+        </>
+      )}
+    </div>
+  );
+}

@@ -7,6 +7,8 @@ import type { TileCoord, EntityId } from '../core/types';
 import { BALANCE } from '../data/balance';
 import type { GameState } from './state';
 import { tickToDate, type GameDate } from './time/calendar';
+import { generateWorld } from './world/generate';
+import type { WorldMap } from './world/World';
 
 /** What changed during a tick, so the renderer can redraw only that. */
 export interface TickResult {
@@ -36,6 +38,7 @@ export class Simulation {
       rngState: this.rng.getState(),
       tick: 0,
       treasury: BALANCE.economy.startingTreasury,
+      world: generateWorld(seed, BALANCE.map.width, BALANCE.map.height),
     };
   }
 
@@ -43,6 +46,11 @@ export class Simulation {
     this.state.tick += 1;
     this.state.rngState = this.rng.getState();
     return { tick: this.state.tick, changedTiles: [], changedBuildings: [] };
+  }
+
+  /** Read-only access for the renderer. Callers must not write to the layers. */
+  getWorld(): Readonly<WorldMap> {
+    return this.state.world;
   }
 
   snapshot(): SimSnapshot {

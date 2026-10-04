@@ -22,3 +22,20 @@ export const BALANCE = {
     startingTreasury: 5000,
   },
 } as const;
+
+/** World-generation tuning. */
+export const WORLDGEN = {
+  /** Share of the map that is water (the lowest tiles). */
+  waterShare: 0.16,
+  /** Share of the map that is beach sand (the next-lowest tiles). */
+  sandShare: 0.05,
+  /** Lifts the middle of the map so the settlement has land to start on. */
+  centreLift: 0.22,
+  /** Share of the map's land with forest-level moisture. */
+  forestShare: 0.22,
+  /** Chance of a lone tree on grass outside forests. */
+  scatteredTreeChance: 0.02,
+  /** Number of noise octaves and base frequency (cycles across the map). */
+  octaves: 4,
+  baseFrequency: 3,
+} as const;

@@ -32,7 +32,7 @@ idb-keyval (saves) · Vitest. Deploys to Vercel as a static site (private previe
 ## Status
 
 - [x] M0 — Scaffold
-- [ ] M1 — World and camera
+- [x] M1 — World and camera
 - [ ] M2 — Roads
 - [ ] M3 — Buildings
 - [ ] M4 — Time and economy
