@@ -287,7 +287,7 @@ Stage 1 is done when all of these are true:
 1. **Dependencies:** approved as listed in section 1 (`simplex-noise` dropped).
 2. **View:** isometric 2.5D.
 3. **Art:** generated in code. No Kenney download.
-4. **Git:** local repo only for now. GitHub can be added later on request, and would be private.
+4. **Git:** private GitHub repo [andrerlaster-lgtm/The-City](https://github.com/andrerlaster-lgtm/The-City) (Andre created it public on 2026-10-04 and asked for it to be made private before the first push).
 5. **Building names:** Cottage / Rowhouse / Farm / Workshop / Well.
 
 ---
