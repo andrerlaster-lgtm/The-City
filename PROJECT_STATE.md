@@ -11,7 +11,21 @@ in → expand → population grows. Full plan and acceptance criteria:
 `docs/STAGE-1-PLAN.md`.
 
 ## Current Stage
-Stage 1, milestones M0–M5 committed and pushed. Andre's M6 play-test covered the core M5 behaviour: production, disconnecting and reconnecting. The M5 road-connection hints haven't been explicitly play-tested. **M6 is done and pushed. M7 (Polish and deploy) is done: Andre's play-test passed, it's committed and pushed (`e1fc012`), and the private Vercel preview passes all 10 Playwright tests. All Stage 1 milestones (M0–M7) are complete. Stage 2 is planned (`docs/STAGE-2-PLAN.md`); S2-M1 Foundations is next and not started.**
+**Stage 1 is complete (M0–M7), committed and pushed.** The audit is in
+`docs/STAGE-1-COMPLETION.md` (25 PASS, 3 PARTIAL, 0 FAIL).
+
+**Stage 2 is planned** (`docs/STAGE-2-PLAN.md`, reconciled with
+`docs/STAGE-2-FEATURE-BANK.md`). **S2-M1 Foundations is next and not
+started.**
+
+The last QA run (`qa` agent, 2026-10-05) was **PASS**:
+- 378/378 unit tests
+- typecheck and build clean
+- 10/10 Playwright tests
+- diff check clean
+
+Note: the M5 road-connection hints haven't been play-tested on their own
+(they're on the S2-M1 play-test checklist).
 
 | # | Milestone | Status |
 |---|---|---|
@@ -317,15 +331,30 @@ Scripts: `npm run dev`, `npm test`, `npm run typecheck`, `npm run build`.
 
 ## GitHub
 
-Repository: https://github.com/andrerlaster-lgtm/The-City
-
-Branch: `main`
-
-Working tree: clean. M7 (`e1fc012`) is pushed.
-- Branches on GitHub: `main` and `production`.
-  - `production` was created at `e1fc012` only so Vercel can use it as the
-    production branch. **Never push to it** unless Andre explicitly asks for
-    a production release.
+- **Repository:** https://github.com/andrerlaster-lgtm/The-City. **Public**
+  since 2026-10-04 (Andre). The history was scanned first: no secrets were
+  ever committed.
+- **About box:**
+  - Description: "Isometric browser city builder (TypeScript, PixiJS,
+    React)".
+  - Website: `https://the-city-git-main-andrerlaster-lgtms-projects.vercel.app`.
+    That's the stable preview link for the latest `main`, which needs a
+    Vercel login. Swap it for the public URL at the first public release.
+- **Branches:**
+  - `main`: active development. Every push builds a protected preview.
+  - `production`: at `e1fc012`. Created only so Vercel can use it as the
+    production branch.
+    - **Protected:** a pull request is required, enforced for admins, and
+      force pushes and deletion are blocked.
+    - A merged PR from `main` → `production` is a **public release**. Only
+      do this when Andre asks.
+- **Repo tooling:**
+  - `.claude/agents/qa.md`: verification only.
+  - `.claude/agents/performance.md`: benchmarks only.
+  - `docs/HANDOFF.md`: a review-only handoff for a second Claude Code
+    session.
+- **Sync:** local `main` matches `origin/main` after each push. Check with
+  `git status -sb`.
 
 ## Vercel
 
@@ -344,13 +373,16 @@ Working tree: clean. M7 (`e1fc012`) is pushed.
   - **So pushes to `main` build protected previews,** and production only
     happens by pushing to `production` or running `vercel promote`. Neither
     is ever done without Andre's request.
-  - **`sim-game` isn't deleted yet.** It's no longer connected to anything.
+  - **`sim-game` is archived** (2026-10-04, not deleted). It's still
+    public, and isn't connected to anything.
 - **Build settings** are pinned in `vercel.json`: Vite, `npm ci`,
   `npm run build`, output `dist`. Node 24.x. `.vercelignore` excludes local
   folders.
-- **Private preview:**
-  `https://the-city-p3dj2g5ib-andrerlaster-lgtms-projects.vercel.app`
-  - Deployment `the-city-p3dj2g5ib`, target `preview`, no aliases.
+- **Private previews:** every push to `main` builds one automatically.
+  - Stable link to the latest `main` (needs a Vercel login):
+    `https://the-city-git-main-andrerlaster-lgtms-projects.vercel.app`
+  - Each deployment also has its own URL, e.g. `the-city-<hash>-…vercel.app`.
+    The first one, the CLI preview `the-city-p3dj2g5ib`, still exists.
   - Deployment Protection (Vercel login) is on: anyone who isn't logged in
     is redirected to the Vercel login page.
 - **Playwright against the preview:** 10 of 10 passed. Command:
@@ -364,8 +396,9 @@ Working tree: clean. M7 (`e1fc012`) is pushed.
   which put the earlier production `*.vercel.app` alias in public view. Keep
   production unused.
 - **Automation-bypass secret:** created 22:37 on 2026-10-04, apparently by
-  the CLI during `vercel curl` / `vercel env run`. Playwright doesn't use it
-  (it uses the OIDC token). Not revoked yet, pending Andre's decision.
+  the CLI during `vercel curl` / `vercel env run`. **Revoked** on 2026-10-04
+  through Vercel's API, leaving 0 entries. Playwright uses the OIDC token,
+  which was verified after the revoke.
 - **Incident (2026-10-04):** the first deploy went to **production** despite
   `--target=preview` (this was the Stage 1 plan's known caveat).
   - It got a **public** alias, `the-city-gray.vercel.app` (HTTP 200).
@@ -376,9 +409,11 @@ Working tree: clean. M7 (`e1fc012`) is pushed.
     `vercel remove`. Its URLs, `the-city-2j92x23s7-…`,
     `the-city-andrerlaster-lgtms-projects…` and `the-city-gray…`, all return
     404.
-  - **The project has no production deployment now.** The next deploy could
-    again be assigned to production. Before any future deploy, check the
-    target and stop if it says production.
+  - **The project has no production deployment.** Since the production
+    branch was set to `production`, pushes to `main` always build previews
+    (verified on every push since).
+  - **Manual CLI deploys** (`vercel deploy`) still need their target checked,
+    and you should stop if it says production.
 - **No production deploy is intended** until Andre asks.
 
 ## M2 Completion (2026-10-04)
@@ -718,6 +753,6 @@ passing 10 of 10 against the preview.
 
 ## Last Updated
 
-Date: 2026-10-04
-AI used: Claude (Stage 2 plan; Stage 1 completion audit; M7 plan and implementation; M6 plan and implementation; M5 plan, review and fix pass); Codex (M5 implementation; M4
+Date: 2026-10-05
+AI used: Claude (status refresh, QA and performance agents, handoff; Stage 2 plan; Stage 1 completion audit; M7 plan and implementation; M6 plan and implementation; M5 plan, review and fix pass); Codex (M5 implementation; M4
 implementation); Claude (M4 plan, review and fix pass)
