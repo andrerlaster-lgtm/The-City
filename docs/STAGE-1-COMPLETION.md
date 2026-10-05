@@ -150,7 +150,7 @@ Legend:
 
 | Check | Status |
 |---|---|
-| `production` protected against direct pushes | **Blocked.** Approved and attempted (pull request required, enforced for admins). GitHub returned HTTP 403, "Upgrade to GitHub Pro or make this repository public", for both branch protection and rulesets on this private personal repo. **Andre chose to keep the `production` → public release model, with no Vercel guard.** |
+| `production` protected against direct pushes | **Done.** At first GitHub refused (HTTP 403 on a private Free repo). After Andre made The-City **public** (history scanned first: no secrets ever committed), the rule was applied: pull request required, enforced for admins, force pushes and deletion blocked. Verified `protected: true`. The release model stays `production` → public release, via PR, with no Vercel guard. |
 | `sim-game` archived | **Done.** Archived on 2026-10-04 (read-only, still public, unused by Vercel). |
 | Automation-bypass secret revoked | **Done.** Revoked on 2026-10-04 through Vercel's API (`regenerate: false`), leaving 0 entries. Playwright still reaches the preview with OIDC. |
 | No production deployment | **Holds.** 0 production deployments, and `production` hasn't been pushed since it was created at `e1fc012`. |
@@ -207,9 +207,8 @@ Legend:
 7. **Flaky timing tests under heavy machine load:** the M5 performance test,
    the Playwright environment probe and the real-time clock and town tests.
    They pass on a rerun.
-8. **Production branch:** pushing `production` creates a public production
-   deployment. GitHub branch protection isn't available on the current plan
-   (§3, safety checks). Use the Vercel-side guard instead.
+8. **Production branch:** now protected on GitHub (pull request required,
+   enforced for admins). A merged PR into `production` is a public release.
 9. **Housekeeping:**
    - archive `sim-game` (Andre)
    - optionally revoke the unused automation-bypass secret

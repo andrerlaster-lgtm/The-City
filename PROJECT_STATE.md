@@ -699,23 +699,23 @@ passing 10 of 10 against the preview.
      - `main` → automatic protected Preview.
      - `production` → a deliberate public Production release.
      - **No Vercel-side guard**, by Andre's decision.
-   - **Blocked, still open:** GitHub protection for `production`.
-     - Andre approved it. Claude attempted the real `PUT` request (pull
-       request required, enforced for admins, no force pushes or deletions)
-       on 2026-10-04.
-     - GitHub returned **HTTP 403: "Upgrade to GitHub Pro or make this
-       repository public"**. The repo is private and owned by a personal
-       account on the Free plan, and Andre is an admin, so this is a plan
-       limit.
-     - Rulesets are refused the same way.
-     - Making the repo public wasn't approved, and wasn't done.
-     - Options:
-     - **GitHub Pro.** Then add a rule on `production`:
-       - require a pull request before merging
-       - block force pushes and deletions
-       - don't allow bypassing, including for admins
-     - **Interim:** a local `pre-push` hook refusing direct pushes to
-       `production`. It only protects this machine.
+   - **Done:** GitHub protection for `production`.
+     - Andre made The-City **public**. A history scan before applying
+       protection found no secrets, tokens or `.env` files ever committed.
+     - Protection on `production`:
+       - a pull request is required (0 approvals, since solo authors can't
+         approve their own PR)
+       - **enforced for admins**
+       - force pushes and deletion blocked
+     - `main` is unprotected, so pushes still build previews.
+     - Verified through the GitHub API (`protected: true`). It wasn't tested
+       with a real push, since a push that got through would deploy
+       publicly.
+     - **To release:** open a PR from `main` → `production` and merge it. The
+       merge creates the public production deployment. Only do this when
+       Andre asks.
+     - With the repo public, Vercel's Git fork protection is on, so PRs from
+       forks need authorization before they build.
    - **Final check (2026-10-04):**
      - 0 production deployments (3 previews, all Ready).
      - `production` is untouched at `e1fc012`; there's no
