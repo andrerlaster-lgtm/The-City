@@ -11,7 +11,7 @@ in → expand → population grows. Full plan and acceptance criteria:
 `docs/STAGE-1-PLAN.md`.
 
 ## Current Stage
-Stage 1, milestones M0–M3 done, verified and committed. **M4 planned and ready for implementation** (`docs/M4-PLAN.md`).
+Stage 1, milestones M0–M4 done and committed. **M5 (Citizens) is next** (not planned yet).
 
 | # | Milestone | Status |
 |---|---|---|
@@ -19,20 +19,28 @@ Stage 1, milestones M0–M3 done, verified and committed. **M4 planned and ready
 | M1 | World and camera | Done |
 | M2 | Roads | Done |
 | M3 | Buildings | Done |
-| M4 | Time and economy | Planned, ready for implementation |
+| M4 | Time and economy | Done |
 | M5 | Citizens (first full gameplay loop) | Not started |
 | M6 | Save and load | Not started |
 | M7 | Polish and deploy (private Vercel preview) | Not started |
 
 ## Last Completed Step
-2026-10-04: M3 — Buildings implemented by Codex from `docs/M3-PLAN.md`, then
-two Claude reviews. Claude's fix pass corrected where buildings, the
-placement ghost and roads are drawn (they were offset from their tiles) and
-cleaned up the simulation code. Andre's browser play-test passed, and M3 is
-committed and pushed.
+2026-10-04: M4 — Time and economy, implemented by Codex from the approved
+plan. It adds:
+- the fixed-step loop
+- speed controls and keys
+- daily upkeep and the ledger
+- the per-day treasury projection
+- the debt and immigration warning
+- the economy breakdown
+
+Andre's browser play-test passed. Claude's final review found two misleading
+economy-panel figures and a few smaller issues, and Claude's fix pass resolved
+them (see "M4 Review Fixes"). M4 is committed locally at Andre's request,
+and not pushed.
 
 ## Current Task
-M4 — Time and economy: plan approved 2026-10-04 and saved as `docs/M4-PLAN.md`. Implementation has not started.
+None in progress. M5 planning is next.
 
 ## Important Decisions
 - VS Code is the main development command center.
@@ -60,13 +68,16 @@ Core rule: **the simulation never knows the screen exists.**
 - `src/sim/` — pure TypeScript simulation. No Pixi, React, DOM, storage or
   `Math.random` (seeded `core/rng.ts` instead). Enforced by
   `tests/architecture/boundaries.test.ts`.
-  - `Simulation.ts` owns `GameState` (seed, rng state, tick, treasury, world).
-    `tick()` currently only advances the hour; returns changed tiles/buildings
-    (empty until later simulation systems land).
+  - `Simulation.ts` owns `GameState` (seed, rng state, tick, treasury, world,
+    speed and economy ledger). `tick()` advances one hour and closes the
+    daily economy at 00:00; it returns changed tiles/buildings.
   - `world/` — `WorldMap` as flat typed arrays (`y * width + x`): terrain,
     trees, variant. Own ~40-line value noise in `noise.ts`, generation in
     `generate.ts`.
-  - `time/calendar.ts` — tick (1 game hour) → date.
+  - `time/calendar.ts` — tick (1 game hour) → date; `time/clock.ts` — daily
+    cadence helpers.
+  - `economy/economy.ts` — deterministic taxes, building and road upkeep,
+    daily ledger and projected net. Taxes remain zero until citizens arrive.
   - `roads.ts` — road placement and demolition (all-or-nothing), previews,
     the 4-bit N/E/S/W neighbour mask, the BFS from the entrance (returns
     which tiles' connected state flipped), and edge-entrance placement.
@@ -89,13 +100,13 @@ Core rule: **the simulation never knows the screen exists.**
   `setToolDrag` in `camera.ts` hands left-drag to the active tool.
 - `src/input/` — pointer → tile hover, tile drag strokes, keyboard pan.
 - `src/ui/` — React HUD overlay: `App`, `TopBar`, `ToolBar`, `BuildMenu`,
-  `InfoPanel`, `TileInfo`, CSS tokens.
+  `InfoPanel`, `TileInfo`, `SpeedControls`, `EconomyPanel`, CSS tokens.
   Reads state via a small `Store` (useSyncExternalStore-shaped).
 - `src/app/` — `Game.ts` composition root wiring sim + renderer + input + UI;
-  `store.ts`.
-- Planned flow: input → **commands** → sim → **snapshots/events** → renderer/UI.
-  The command entry point exists (`applyCommand`); the save system and game
-  loop are not built yet.
+  `loop.ts` has the testable fixed-step accumulator; `store.ts` publishes
+  snapshots.
+- Flow: input → **commands** → sim → **snapshots** → renderer/UI. The save
+  system is not built yet.
 - Guard rails: no source file over 400 lines (tested).
 
 ## Main Technologies
@@ -121,7 +132,12 @@ Scripts: `npm run dev`, `npm test`, `npm run typecheck`, `npm run build`.
   cost dimming, placement preview/reasons, edge-to-edge road access, connected
   status, selection/info panel, whole-building and mixed road/building
   demolition with no refund. Trees clear under buildings.
-- Tests: 122 passing across data, footprint/placement/access/demolition,
+- M4: deterministic hour ticks; app-side fixed-step loop with pause and 1×,
+  2× and 3× speeds; calendar updates; daily building/road upkeep; construction
+  ledger; zero taxes; projected net/day; today/yesterday report; debt blocks
+  new construction and displays the immigration-paused status without
+  demolishing anything.
+- Tests: 152 passing across data, footprint/placement/access/demolition,
   determinism, roads, world generation, camera math, sim-purity and file-size
   guards.
 
@@ -129,6 +145,10 @@ Scripts: `npm run dev`, `npm test`, `npm run typecheck`, `npm run build`.
 
 - M3 validation: 125 tests passed; typecheck, production build and
   `git diff --check` passed.
+- M4 validation after the fix pass: 152 tests passed, and typecheck, the
+  production build and `git diff --check` passed.
+- M4 browser play-test passed (Andre, 2026-10-04). The economy panel changes
+  from the fix pass need a quick look.
 - M3 browser play-test passed (Andre, 2026-10-04, after the rendering fix):
   road/ghost/building alignment, placement reasons, all five buildings, depth,
   info panel connected/disconnected, and demolish with no refund.
@@ -143,8 +163,10 @@ Scripts: `npm run dev`, `npm test`, `npm run typecheck`, `npm run build`.
   and every road shows as disconnected. This didn't happen for any tested seed.
 - The toolbar repeats the treasury that the top bar already shows. This is
   cosmetic.
-- The game clock doesn't run yet: the app never calls `Simulation.tick()`.
-  This is expected until M4.
+- `hud.css` is 333 of the 400 allowed lines. Split it (for example,
+  `economy.css`) before it grows much more.
+- The debt banner and the economy panel can overlap on windows narrower than
+  about 900 px. This is cosmetic.
 - Top-bar population, free housing and open jobs are placeholders until M5.
 - `docs/STAGE-1-PLAN.md` still uses the old folder name `the-city-life/`.
 
@@ -154,7 +176,8 @@ Repository: https://github.com/andrerlaster-lgtm/The-City
 
 Branch: `main`
 
-Working tree: clean. M3 is pushed to `origin/main`. The M4 plan commit is local only and not pushed.
+Working tree: clean. `main` is 2 commits ahead of `origin/main` (the M4
+plan and M4), and neither is pushed.
 
 ## Vercel
 
@@ -224,20 +247,45 @@ Claude's fix pass:
 Validation: 125 tests passed. `npm run typecheck`, `npm run build` and
 `git diff --check` all passed.
 
+## M4 Review Fixes (2026-10-04, Claude)
+
+1. **"Today so far" upkeep showed −0.** The panel now shows today's
+   construction, plus the taxes and upkeep due at 00:00 (from the projection).
+2. **Yesterday's "Net" left out construction.** `DailyReport.net` is now the
+   whole day's treasury change (taxes − upkeep − construction).
+   `treasuryAfter` is unchanged, and construction is still charged once,
+   when it happens.
+3. **The frame loop rebuilt the full snapshot every frame.** The loop now
+   reads `Simulation.getSpeed()`, which costs almost nothing.
+4. **The economy panel covered the speed controls.** It now opens below them.
+5. **Ctrl, Cmd or Alt plus a digit or Space changed the speed.** Those
+   combinations are now ignored, and a held Space no longer toggles pause
+   repeatedly.
+6. **`set-speed` accepted any number.** Values outside 0–3 are now rejected.
+   `buildingUpkeep` now uses `buildingDefinition()`.
+7. **Test gaps filled:**
+   - whole-state determinism at speeds 1× and 3×
+   - stepper tick counts don't depend on how time is split into frames
+   - `immigrationPaused` at exactly 0 and at 1
+   - roads are blocked while in debt
+   - `lastDay` rolls over and `today` resets, and net matches the treasury
+     change
+   - 15 road tiles cost 2 coins per day
+   - invalid speed is rejected
+
 ## Next Step
 
-1. Implement **M4 — Time and economy** following `docs/M4-PLAN.md` (Codex
-   or Claude). Scope:
-   - a fixed-step clock (`app/loop.ts`) with pause, 1×, 2× and 3×
-   - the daily economy step inside `Simulation.tick()`
-   - upkeep, a ledger, and taxes that stay at 0
-   - a `set-speed` command
-   - speed controls, the per-day treasury figure, the breakdown popover and
-     the debt banner
-2. Claude reviews the M4 changes and runs the tests, typecheck and build.
-   Then Andre play-tests in the browser.
+1. Push M4 when Andre asks.
+2. Plan **M5 — Citizens**:
+   - arrivals (paused while `immigrationPaused`)
+   - housing and jobs, with job matching by road distance
+   - food from farms
+   - Well happiness
+   - departures
+   - live top-bar stats
+   - taxes using `taxesFor(residents, employed)`
 
 ## Last Updated
 
 Date: 2026-10-04
-AI used: Claude (M4 plan); Codex (M3 implementation), Claude (M3 reviews and fix pass)
+AI used: Codex (M4 implementation), Claude (M4 plan, review and fix pass)

@@ -7,12 +7,14 @@ import type { TileCoord, EntityId } from '../core/types';
 import { BALANCE } from '../data/balance';
 import type { GameState } from './state';
 import { tickToDate, type GameDate } from './time/calendar';
+import { dayIndex, isDayStart } from './time/clock';
 import { generateWorld } from './world/generate';
 import type { WorldMap } from './world/World';
 import { demolishRoads, placeRoads, previewDemolish, previewRoads, type RoadPreview } from './roads';
 import type { PlayerCommand, CommandResult } from './commands';
 import { addBuilding, buildingAtTile, buildingIdsAt, refreshBuildingAccess, removeBuildingsAt, type BuildingInstance } from './buildings/buildings';
 import { previewBuilding, type BuildingPreview } from './buildings/placement';
+import { closeDay, emptyLedger, projectedDaily, type DailyReport, type Ledger } from './economy/economy';
 
 export type { PlayerCommand, CommandResult } from './commands';
 
@@ -31,6 +33,8 @@ export interface SimSnapshot {
   population: number;
   freeHousing: number;
   freeJobs: number;
+  speed: 0 | 1 | 2 | 3;
+  economy: { today: Ledger; lastDay: DailyReport | null; projected: ReturnType<typeof projectedDaily>; immigrationPaused: boolean };
 }
 
 export class Simulation {
@@ -47,18 +51,31 @@ export class Simulation {
       world,
       buildings: [],
       nextEntityId: 1,
+      speed: BALANCE.time.startSpeed,
+      economy: { today: emptyLedger(), lastDay: null },
     };
   }
 
   tick(): TickResult {
     this.state.tick += 1;
     this.state.rngState = this.rng.getState();
+    if (isDayStart(this.state.tick)) {
+      const closed = closeDay(this.state.economy.today, dayIndex(this.state.tick), this.state.treasury, this.state.buildings, this.state.world);
+      this.state.treasury = closed.treasury;
+      this.state.economy.lastDay = closed.report;
+      this.state.economy.today = emptyLedger();
+    }
     return { tick: this.state.tick, changedTiles: [], changedBuildings: [] };
   }
 
   /** The sole player entry point for deterministic, validated state changes. */
   applyCommand(command: PlayerCommand): CommandResult {
     const treasury = this.state.treasury;
+    if (command.type === 'set-speed') {
+      if (![0, 1, 2, 3].includes(command.speed)) return fail('Invalid speed.', 0, treasury);
+      this.state.speed = command.speed;
+      return { ok: true, reason: null, cost: 0, changedTiles: [], changedBuildings: [], treasury };
+    }
     if (command.type === 'place-roads') {
       const { preview, placed, connectivityChanged, treasury: next } = placeRoads(this.state.world, command.tiles, treasury);
       // previewRoads already marks these tiles invalid; this only picks the clearer reason.
@@ -67,6 +84,7 @@ export class Simulation {
       if (!preview.affordable) return fail('Not enough money.', preview.cost, treasury);
       if (!placed.length) return fail('No new road tiles.', 0, treasury);
       this.state.treasury = next;
+      this.state.economy.today.construction += preview.cost;
       const changedBuildings = refreshBuildingAccess(this.state.world, this.state.buildings);
       return { ok: true, reason: null, cost: preview.cost, changedTiles: [...placed, ...connectivityChanged], changedBuildings, treasury: next };
     }
@@ -75,6 +93,7 @@ export class Simulation {
       if (!result.building) return fail(result.reason ?? 'Cannot place building.', result.cost, treasury);
       this.state.nextEntityId++;
       this.state.treasury = result.treasury;
+      this.state.economy.today.construction += result.cost;
       return { ok: true, reason: null, cost: result.cost, changedTiles: result.tiles, changedBuildings: [result.building.id], treasury: result.treasury };
     }
     const removedBuildings = removeBuildingsAt(this.state.world, this.state.buildings, command.tiles);
@@ -87,6 +106,9 @@ export class Simulation {
       changedBuildings: [...removedBuildings.removed, ...changedBuildings], treasury,
     };
   }
+
+  /** Cheap per-frame read for the app loop (snapshot() also computes projections). */
+  getSpeed(): 0 | 1 | 2 | 3 { return this.state.speed; }
 
   previewRoads(tiles: readonly TileCoord[]): RoadPreview {
     return previewRoads(this.state.world, tiles, this.state.treasury);
@@ -114,6 +136,13 @@ export class Simulation {
       population: 0,
       freeHousing: 0,
       freeJobs: 0,
+      speed: this.state.speed,
+      economy: {
+        today: { ...this.state.economy.today },
+        lastDay: this.state.economy.lastDay ? { ...this.state.economy.lastDay } : null,
+        projected: projectedDaily(this.state.buildings, this.state.world),
+        immigrationPaused: this.state.treasury <= 0,
+      },
     };
   }
 }

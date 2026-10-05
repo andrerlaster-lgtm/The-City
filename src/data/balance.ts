@@ -8,6 +8,7 @@ export const BALANCE = {
     height: 128,
   },
   time: {
+    startSpeed: 1,
     /** Sim ticks per in-game day (1 tick = 1 game hour). */
     ticksPerDay: 24,
     /** Real milliseconds per tick at 1x speed. */
@@ -20,6 +21,9 @@ export const BALANCE = {
   },
   economy: {
     startingTreasury: 5000,
+    roadUpkeepPerTile: 0.1,
+    taxPerEmployed: 2,
+    taxPerResident: 1,
   },
 } as const;
 

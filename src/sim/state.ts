@@ -5,6 +5,7 @@
  */
 import type { WorldMap } from './world/World';
 import type { BuildingInstance } from './buildings/buildings';
+import type { DailyReport, Ledger } from './economy/economy';
 
 export interface GameState {
   seed: number;
@@ -15,4 +16,6 @@ export interface GameState {
   world: WorldMap;
   buildings: BuildingInstance[];
   nextEntityId: number;
+  speed: 0 | 1 | 2 | 3;
+  economy: { today: Ledger; lastDay: DailyReport | null };
 }

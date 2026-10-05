@@ -17,7 +17,7 @@ const SOURCES = import.meta.glob<string>('/src/**/*.{ts,tsx}', {
 
 const FORBIDDEN_PACKAGES = ['pixi.js', 'pixi-viewport', 'react', 'react-dom', 'idb-keyval'];
 const FORBIDDEN_LAYERS = ['render', 'ui', 'input', 'save', 'app'];
-const FORBIDDEN_GLOBALS = /\b(window|document|localStorage|indexedDB|requestAnimationFrame|Math\.random)\b/;
+const FORBIDDEN_GLOBALS = /\b(window|document|localStorage|indexedDB|requestAnimationFrame|setInterval|setTimeout|performance|Math\.random)\b/;
 
 function importsOf(source: string): string[] {
   return [...source.matchAll(/(?:import|export)[^'"]*?from\s*['"]([^'"]+)['"]/g)].map((m) => m[1] ?? '');

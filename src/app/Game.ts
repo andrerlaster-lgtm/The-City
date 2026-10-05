@@ -15,6 +15,7 @@ import { Store } from './store';
 import { buildingDefinition, type BuildingId } from '../data/buildings';
 import type { BuildingInstance } from '../sim/buildings/buildings';
 import type { BuildingPreview } from '../sim/buildings/placement';
+import { FixedStepper } from './loop';
 
 /** What the UI shows about the tile under the cursor. */
 export interface HoverInfo {
@@ -39,6 +40,8 @@ export class Game {
   readonly selectedBuilding = new Store<BuildingInstance | null>(null);
   private detachTools: (() => void) | null = null;
   private hoveredTile: TileCoord | null = null;
+  private readonly stepper = new FixedStepper();
+  private lastSpeed: 1 | 2 | 3 = 1;
 
   constructor(seed: number) {
     this.sim = new Simulation(seed);
@@ -49,16 +52,40 @@ export class Game {
     await this.renderer.init(canvasHost);
     const world = this.sim.getWorld();
     const camera = this.renderer.showWorld(world);
+    this.renderer.app.ticker.add((ticker) => {
+      const speed = this.sim.getSpeed();
+      if (speed !== 0) this.lastSpeed = speed;
+      const count = this.stepper.advance(ticker.deltaMS, speed);
+      if (count === 0) return;
+      for (let i = 0; i < count; i++) this.sim.tick();
+      this.publish();
+    });
     attachKeyboardPan(camera, this.renderer.app.ticker);
     attachHover(camera, this.renderer.app.canvas, this.renderer.screenToMap, world.width, world.height, (tile) => this.onHover(tile));
     this.detachTools = attachTileDrag(camera, (x, y) => {
       const p = this.renderer.screenToMap(x, y); const tile = screenToTile(p.x, p.y);
       return inBounds(tile.x, tile.y, world.width, world.height) ? tile : null;
     }, world.width, world.height, (tiles) => this.preview(tiles), (tiles, click) => this.commit(tiles, click), (tile) => this.click(tile));
-    const keydown = (event: KeyboardEvent) => { if (event.key === 'Escape' && this.tool.get() !== null) this.setTool(null); };
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && this.tool.get() !== null) { this.setTool(null); return; }
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.code === 'Space') {
+        event.preventDefault();
+        if (!event.repeat) this.setSpeed(this.sim.getSpeed() === 0 ? this.lastSpeed : 0);
+      } else if (event.key === '1' || event.key === '2' || event.key === '3') this.setSpeed(Number(event.key) as 1 | 2 | 3);
+    };
     window.addEventListener('keydown', keydown);
     const detachTools = this.detachTools;
     this.detachTools = () => { detachTools?.(); window.removeEventListener('keydown', keydown); };
+  }
+
+  setSpeed(speed: 0 | 1 | 2 | 3): void {
+    if (speed !== 0) this.lastSpeed = speed;
+    else this.stepper.advance(0, 0);
+    this.sim.applyCommand({ type: 'set-speed', speed });
+    this.publish();
   }
 
   setTool(tool: Tool | null): void {
