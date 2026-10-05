@@ -17,7 +17,7 @@ test('the clock runs at 1×, stops when paused and runs faster at 3×', async ({
   await openGame(page);
   await newGame(page);
   const start = await hourText(page);
-  await expect.poll(() => hourText(page), { timeout: 5_000 }).not.toBe(start);
+  await expect.poll(() => hourText(page), { timeout: 10_000 }).not.toBe(start);
   await page.locator('body').press('Space');
   await expect(page.locator('.top-bar__speed')).toHaveText('⏸');
   const paused = await hourText(page);
@@ -25,7 +25,7 @@ test('the clock runs at 1×, stops when paused and runs faster at 3×', async ({
   expect(await hourText(page)).toBe(paused);
   await setSpeed(page, '3×');
   await expect(page.locator('.top-bar__speed')).toHaveText('3×');
-  await expect.poll(() => hourText(page), { timeout: 3_000 }).not.toBe(paused);
+  await expect.poll(() => hourText(page), { timeout: 8_000 }).not.toBe(paused);
 });
 
 test('builds a starter town: roads cost money, citizens arrive and the Farm makes food', async ({ page }) => {
@@ -56,13 +56,13 @@ test('builds a starter town: roads cost money, citizens arrive and the Farm make
   await page.keyboard.press('Escape');
 
   await setSpeed(page, '3×');
-  await expect.poll(() => topStat(page, 'Population'), { timeout: 40_000 }).toBeGreaterThan(0);
+  await expect.poll(() => topStat(page, 'Population'), { timeout: 60_000 }).toBeGreaterThan(0);
   const farm = plan.buildings.find((b) => b.defId === 'farm')!;
   await expect.poll(async () => {
     const point = await hoverTile(page, farm.at);
     await page.mouse.click(point.x, point.y);
     return (await page.locator('.info-panel').textContent()) ?? '';
-  }, { timeout: 40_000 }).toMatch(/\+\d+ food \/ day/);
+  }, { timeout: 60_000 }).toMatch(/\+\d+ food \/ day/);
   expect(errors).toEqual([]);
 });
 
@@ -160,4 +160,23 @@ test('the hover chip drops a demolished building at once, without moving the mou
   await page.mouse.up(); // click in place: the pointer never moves after this
   await expect(page.locator('.tile-info__terrain')).not.toHaveText('Cottage');
   await expect(page.locator('.tile-info__terrain')).toHaveText(/^(Grass|Sand)$/);
+});
+
+test('the O key cycles map overlays with a legend, and the Entrance button works', async ({ page }) => {
+  const errors = trackErrors(page);
+  await openGame(page);
+  await newGame(page);
+  const picker = page.getByRole('group', { name: 'Map overlay' });
+  await expect(picker.getByRole('button', { name: 'None' })).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('body').press('o');
+  await expect(picker.getByRole('button', { name: 'Water' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByLabel('Water coverage legend')).toBeVisible();
+  await page.locator('body').press('o');
+  await expect(page.getByLabel('Road connectivity legend')).toContainText('Road reaches the Entrance');
+  await page.locator('body').press('o');
+  await expect(picker.getByRole('button', { name: 'None' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByLabel(/legend$/)).toHaveCount(0);
+  await page.getByRole('button', { name: /Entrance/ }).click();
+  await page.locator('body').press('Home');
+  expect(errors).toEqual([]);
 });

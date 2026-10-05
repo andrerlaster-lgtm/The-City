@@ -9,7 +9,7 @@ Date: 2026-10-04
 
 | Question | Answer |
 |---|---|
-| Existing repo / code | None. `the-city-life/` was created empty today. This plan is its first file. |
+| Existing repo / code | None. The project folder (now `The-City/`) was created empty today. This plan is its first file. |
 | Current stack | None yet, so there's nothing to replace. |
 | Machine | Node 24.15.0, npm 11.12.1, Vercel CLI 53.4.0 (all from the vault's Tool & Skill Registry, versions checked on the machine). |
 | Target | Browser game, deployed to Vercel as a static site (private preview deploys only, per the registry's Vercel rules). |
@@ -128,7 +128,7 @@ Each definition carries: `id`, `name`, `category`, `description`, `size`, `cost`
 ## 3. Directory structure
 
 ```
-the-city-life/
+The-City/
 ├── docs/
 │   └── STAGE-1-PLAN.md          ← this file
 ├── public/                      ← static files (favicon, later real sprites/audio)

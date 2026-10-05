@@ -16,6 +16,7 @@ import { buildingDefinition, type BuildingId } from '../data/buildings';
 import type { BuildingInstance } from '../sim/buildings/buildings';
 import type { BuildingPreview } from '../sim/buildings/placement';
 import { accessHints, type AccessState } from '../render/accessHints';
+import { OVERLAY_ORDER, overlayTints, type OverlayKind } from '../render/overlays';
 import { FixedStepper } from './loop';
 import { watchReducedMotion } from './motion';
 import { ToastStore } from './toasts';
@@ -44,6 +45,9 @@ export class Game {
   readonly toasts = new ToastStore();
   /** The player's reduced-motion preference (renderer effects and number tweening follow it). */
   readonly reducedMotion = new Store<boolean>(false);
+  /** The map overlay being shown ('none' = off). Cycled with the O key. */
+  readonly overlay = new Store<OverlayKind>('none');
+  private overlayShown = '';
   private wasInDebt = false;
   private detachTools: (() => void) | null = null;
   private hoveredTile: TileCoord | null = null;
@@ -80,6 +84,7 @@ export class Game {
     if (options.paused) this.pauseForLoad();
     else this.lastSpeed = sim.getSpeed() === 0 ? this.lastSpeed : sim.getSpeed() as 1 | 2 | 3;
     if (this.started) this.renderer.rebuildWorld(sim.getWorld(), sim.getBuildings());
+    this.overlayShown = '';
     this.publish();
   }
 
@@ -108,6 +113,8 @@ export class Game {
       const target = event.target;
       if (target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key === 'o' || event.key === 'O') { this.cycleOverlay(); return; }
+      if (event.key === 'Home') { event.preventDefault(); this.goToEntrance(); return; }
       if (event.code === 'Space') {
         event.preventDefault();
         if (!event.repeat) this.setSpeed(this.sim.getSpeed() === 0 ? this.lastSpeed : 0);
@@ -124,6 +131,34 @@ export class Game {
     this.sim.applyCommand({ type: 'set-speed', speed });
     this.publish();
     this.onChange?.('speed');
+  }
+
+  setOverlay(kind: OverlayKind): void {
+    this.overlay.set(kind);
+    this.refreshOverlay();
+  }
+
+  cycleOverlay(): void {
+    const index = OVERLAY_ORDER.indexOf(this.overlay.get());
+    this.setOverlay(OVERLAY_ORDER[(index + 1) % OVERLAY_ORDER.length]!);
+  }
+
+  /** Glides the camera back to the settlement entrance (jumps under reduced motion). */
+  goToEntrance(): void {
+    this.renderer.centreOnEntrance(this.sim.getWorld(), true);
+  }
+
+  /** Recomputes the overlay only when its kind or the simulation's map version changed. */
+  private refreshOverlay(): void {
+    if (!this.started) return;
+    const kind = this.overlay.get();
+    const version = this.sim.getMapVersion();
+    const key = `${kind}:${version}`;
+    if (key === this.overlayShown) return;
+    this.overlayShown = key;
+    const world = this.sim.getWorld();
+    const tints = kind === 'none' ? null : overlayTints(kind, world, this.sim.getBuildings(), kind === 'water' ? this.sim.getCoverage('water') : null);
+    this.renderer.setOverlay(kind, tints, world.width, world.height, version);
   }
 
   setTool(tool: Tool | null): void {
@@ -251,6 +286,7 @@ export class Game {
   publish(): void {
     const snapshot = this.sim.snapshot();
     this.snapshot.set(snapshot);
+    this.refreshOverlay();
     const inDebt = snapshot.economy.immigrationPaused;
     if (inDebt && !this.wasInDebt) this.toasts.push('warning', 'Funds empty — immigration paused');
     this.wasInDebt = inDebt;

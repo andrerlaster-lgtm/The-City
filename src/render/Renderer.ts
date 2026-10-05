@@ -14,6 +14,8 @@ import { createCamera, mapExtent, setToolDrag, worldOffset } from './camera';
 import { HoverLayer } from './layers/HoverLayer';
 import { ObjectLayer } from './layers/ObjectLayer';
 import { EffectsLayer } from './layers/EffectsLayer';
+import { OverlayLayer } from './layers/OverlayLayer';
+import type { OverlayKind } from './overlays';
 import { MarkerLayer } from './layers/MarkerLayer';
 import { RoadLayer } from './layers/RoadLayer';
 import { TerrainLayer } from './layers/TerrainLayer';
@@ -39,6 +41,7 @@ export class Renderer {
   private ghost: PlacementGhost | null = null;
   private markers: MarkerLayer | null = null;
   private readonly effects = new EffectsLayer();
+  private readonly overlay = new OverlayLayer();
   private reduceMotion = false;
 
   async init(host: HTMLElement): Promise<void> {
@@ -72,7 +75,7 @@ export class Renderer {
     this.objects.build(world);
     this.roads.build(world);
     this.markers.setEntrance(world);
-    this.world.addChild(this.terrain.container, this.roads.container, this.objects.container, this.effects.container, this.hover.container, this.ghost.container, this.markers.container);
+    this.world.addChild(this.terrain.container, this.roads.container, this.overlay.container, this.objects.container, this.effects.container, this.hover.container, this.ghost.container, this.markers.container);
     this.camera.addChild(this.world);
     this.app.stage.addChild(this.camera);
     this.centreOnEntrance(world);
@@ -95,14 +98,26 @@ export class Renderer {
     this.markers?.setBuildingWarnings(buildings);
     this.hover?.setTile(null);
     this.ghost?.update(null, undefined, null, null);
+    this.overlay.clear();
     this.centreOnEntrance(world);
   }
 
-  /** Start looking at the settlement entrance: every road has to begin there. */
-  private centreOnEntrance(world: Readonly<WorldMap>): void {
+  /**
+   * Looks at the settlement entrance: every road has to begin there. `animate` glides the
+   * camera there (skipped under reduced motion); otherwise it jumps.
+   */
+  centreOnEntrance(world: Readonly<WorldMap>, animate = false): void {
     if (!this.camera || world.entranceIndex < 0) return;
     const top = tileToScreen(world.entranceIndex % world.width, Math.floor(world.entranceIndex / world.width));
-    this.camera.moveCenter(this.world.position.x + top.x, this.world.position.y + top.y + TILE_HEIGHT / 2);
+    const target = { x: this.world.position.x + top.x, y: this.world.position.y + top.y + TILE_HEIGHT / 2 };
+    if (animate && !this.reduceMotion) this.camera.animate({ position: target, time: 450, ease: 'easeInOutSine', removeOnInterrupt: true });
+    else this.camera.moveCenter(target.x, target.y);
+  }
+
+  /** Shows (or hides) a map overlay; identical `version`s are skipped by the layer. */
+  setOverlay(kind: OverlayKind, tints: Uint8Array | null, width: number, height: number, version: number): void {
+    if (kind === 'none' || !tints) { this.overlay.hide(); return; }
+    this.overlay.show(kind, tints, width, height, version, kind === 'roads' ? 0.6 : 0.35);
   }
 
   /** Screen point → map projection coordinates (inverse of tileToScreen space). */

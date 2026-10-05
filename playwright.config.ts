@@ -13,10 +13,15 @@ import { defineConfig } from '@playwright/test';
 declare const process: { env: Record<string, string | undefined> };
 
 const remote = process.env.PLAYWRIGHT_BASE_URL;
+/** `npm run test:e2e:perf` sets this to run only the opt-in @perf specs. */
+const perf = Boolean(process.env.PW_PERF);
 
 export default defineConfig({
   testDir: 'tests/e2e',
   testMatch: '**/*.spec.ts',
+  // @perf specs measure frame times; they're opt-in (see test:e2e:perf).
+  grep: perf ? /@perf/ : undefined,
+  grepInvert: perf ? undefined : /@perf/,
   timeout: 60_000,
   expect: { timeout: 10_000 },
   // Each test renders WebGL in a full Chrome; more than two at once overloads a laptop

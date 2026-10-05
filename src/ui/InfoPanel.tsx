@@ -4,6 +4,10 @@ import { formatNumber } from './format';
 import type { BuildingOccupancy } from '../sim/citizens/citizens';
 import type { BuildingProduction } from '../sim/resources/production';
 import { BALANCE } from '../data/balance';
+import { Fragment } from 'react';
+import type { ServiceKind } from '../data/buildings';
+
+const SERVICE_LABELS: Record<ServiceKind, string> = { water: 'Water coverage' };
 
 export function InfoPanel({ building, occupancy, production }: { building: BuildingInstance | null; occupancy: BuildingOccupancy | null; production: BuildingProduction | null }) {
   if (!building) return null;
@@ -21,7 +25,7 @@ export function InfoPanel({ building, occupancy, production }: { building: Build
       <dt>{definition.housing > 0 ? 'Housing' : 'Work'}</dt><dd>{capacity}</dd>
       {definition.produces === 'food' && <><dt>Food</dt><dd className={production?.food ? '' : 'info-panel__warning'}>{outputText(production?.food ?? 0, production?.workers ?? 0, BALANCE.citizens.foodPerFarmWorker, 'food')}</dd></>}
       {definition.produces === 'revenue' && <><dt>Revenue</dt><dd className={production?.revenue ? '' : 'info-panel__warning'}>{outputText(production?.revenue ?? 0, production?.workers ?? 0, BALANCE.economy.workshopRevenuePerWorker, 'coins')}</dd></>}
-      {definition.serviceRadius > 0 && <><dt>Service radius</dt><dd>{definition.serviceRadius} tiles</dd></>}
+      {definition.services.map((service) => <Fragment key={service.kind}><dt>{SERVICE_LABELS[service.kind]}</dt><dd>{service.radius} tiles</dd></Fragment>)}
       <dt>Road access</dt><dd>{building.roadAccess ? 'Yes' : 'No'}</dd>
       <dt>Entrance connection</dt><dd className={!building.connected ? 'info-panel__warning' : ''}>{building.connected ? 'Connected' : 'Disconnected'}</dd>
       {!building.connected && <><dt className="info-panel__warning" /><dd className="info-panel__warning">Residents/jobs don't count until connected</dd></>}

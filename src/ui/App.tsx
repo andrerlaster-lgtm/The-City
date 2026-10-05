@@ -12,6 +12,7 @@ import { SaveMenu } from './SaveMenu';
 import type { SaveService } from '../app/saveService';
 import { useState } from 'react';
 import { Toasts } from './Toasts';
+import { MapControls } from './MapControls';
 
 export function App({ game, saves }: { game: Game; saves: SaveService }) {
   const snapshot = useStore(game.snapshot);
@@ -31,6 +32,7 @@ export function App({ game, saves }: { game: Game; saves: SaveService }) {
       {citizensOpen && <CitizensPanel snapshot={snapshot} onClose={() => setCitizensOpen(false)} />}
       {menuOpen && <SaveMenu saves={saves} seed={snapshot.seed} onClose={() => setMenuOpen(false)} />}
       <Toasts toasts={game.toasts} />
+      <MapControls game={game} />
       {snapshot.economy.immigrationPaused && <div className="debt-banner" role="status">Funds empty — immigration paused</div>}
       <ToolBar tool={tool} preview={toolPreview} treasury={snapshot.treasury} onSelect={(next) => game.setTool(next)} />
       <TileInfo info={hover} />

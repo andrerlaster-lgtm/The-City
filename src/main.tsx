@@ -11,6 +11,7 @@ import './ui/styles/economy.css';
 import './ui/styles/citizens.css';
 import './ui/styles/save.css';
 import './ui/styles/motion.css';
+import './ui/styles/map.css';
 
 const canvasHost = document.getElementById('canvas-host');
 const uiRoot = document.getElementById('ui-root');

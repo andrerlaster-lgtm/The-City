@@ -33,4 +33,8 @@ export const PALETTE = {
   accessWarn: 0xffb347,
   accessHint: 0xfff1b8,
   entrance: 0xffd36b,
+  /** Map overlays (see render/overlays.ts). */
+  overlayGood: 0x4fc3f7,
+  overlayWarn: 0xffb347,
+  overlayBad: 0xef5350,
 } as const;

@@ -92,10 +92,10 @@ describe('M5 edge cases', () => {
 
 describe('a sixth building needs only data', () => {
   const extras: BuildingDefinition[] = [
-    { id: 'orchard' as BuildingId, name: 'Orchard', category: 'Employment', description: 'test', size: 2, cost: 1, upkeep: 0, housing: 0, jobs: 4, produces: 'food', serviceRadius: 0, requires: { roadAccess: true, terrain: [TerrainId.Grass] }, art: 'orchard' },
-    { id: 'market' as BuildingId, name: 'Market', category: 'Employment', description: 'test', size: 1, cost: 1, upkeep: 0, housing: 0, jobs: 2, produces: 'revenue', serviceRadius: 0, requires: { roadAccess: true, terrain: [TerrainId.Grass] }, art: 'market' },
-    { id: 'lodge' as BuildingId, name: 'Lodge', category: 'Residential', description: 'test', size: 1, cost: 1, upkeep: 0, housing: 6, jobs: 0, produces: null, serviceRadius: 0, requires: { roadAccess: true, terrain: [TerrainId.Grass] }, art: 'lodge' },
-    { id: 'fountain' as BuildingId, name: 'Fountain', category: 'Service', description: 'test', size: 1, cost: 1, upkeep: 0, housing: 0, jobs: 0, produces: null, serviceRadius: 3, requires: { roadAccess: true, terrain: [TerrainId.Grass] }, art: 'fountain' },
+    { id: 'orchard' as BuildingId, name: 'Orchard', category: 'Employment', description: 'test', size: 2, cost: 1, upkeep: 0, housing: 0, jobs: 4, produces: 'food', services: [], requires: { roadAccess: true, terrain: [TerrainId.Grass] }, art: 'orchard' },
+    { id: 'market' as BuildingId, name: 'Market', category: 'Employment', description: 'test', size: 1, cost: 1, upkeep: 0, housing: 0, jobs: 2, produces: 'revenue', services: [], requires: { roadAccess: true, terrain: [TerrainId.Grass] }, art: 'market' },
+    { id: 'lodge' as BuildingId, name: 'Lodge', category: 'Residential', description: 'test', size: 1, cost: 1, upkeep: 0, housing: 6, jobs: 0, produces: null, services: [], requires: { roadAccess: true, terrain: [TerrainId.Grass] }, art: 'lodge' },
+    { id: 'fountain' as BuildingId, name: 'Fountain', category: 'Service', description: 'test', size: 1, cost: 1, upkeep: 0, housing: 0, jobs: 0, produces: null, services: [{ kind: 'water', radius: 3 }], requires: { roadAccess: true, terrain: [TerrainId.Grass] }, art: 'fountain' },
   ];
   const all = BUILDINGS as BuildingDefinition[];
   afterEach(() => { for (const extra of extras) { const i = all.indexOf(extra); if (i >= 0) all.splice(i, 1); } });

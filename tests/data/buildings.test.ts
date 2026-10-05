@@ -21,7 +21,10 @@ describe('building definitions', () => {
       expect(item.requires.terrain.length).toBeGreaterThan(0);
       expect(item.requires.terrain.every((terrain) => terrain === TerrainId.Grass || terrain === TerrainId.Sand)).toBe(true);
       expect(item.art).toBe(item.id);
-      expect(item.serviceRadius).toBeGreaterThanOrEqual(0);
+      for (const service of item.services) {
+        expect(['water']).toContain(service.kind);
+        expect(service.radius).toBeGreaterThan(0);
+      }
       expect([null, 'food', 'revenue']).toContain(item.produces);
       expect(['Residential', 'Employment', 'Service']).toContain(item.category);
     }

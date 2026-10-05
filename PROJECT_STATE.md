@@ -15,8 +15,9 @@ in → expand → population grows. Full plan and acceptance criteria:
 `docs/STAGE-1-COMPLETION.md` (25 PASS, 3 PARTIAL, 0 FAIL).
 
 **Stage 2 is planned** (`docs/STAGE-2-PLAN.md`, reconciled with
-`docs/STAGE-2-FEATURE-BANK.md`). **S2-M1 Foundations is next and not
-started.**
+`docs/STAGE-2-FEATURE-BANK.md`). **S2-M1 Foundations is implemented
+(Claude, 2026-10-05) and committed at Andre's request; not pushed yet.** See
+"S2-M1 Implementation".
 
 The last QA run (`qa` agent, 2026-10-05) was **PASS**:
 - 378/378 unit tests
@@ -24,8 +25,7 @@ The last QA run (`qa` agent, 2026-10-05) was **PASS**:
 - 10/10 Playwright tests
 - diff check clean
 
-Note: the M5 road-connection hints haven't been play-tested on their own
-(they're on the S2-M1 play-test checklist).
+The M5 road-connection hints were play-tested by Andre on 2026-10-05: pass.
 
 | # | Milestone | Status |
 |---|---|---|
@@ -34,12 +34,16 @@ Note: the M5 road-connection hints haven't been play-tested on their own
 | M2 | Roads | Done |
 | M3 | Buildings | Done |
 | M4 | Time and economy | Done |
-| M5 | Citizens (first full gameplay loop) | Done (`e990771`); core behaviour verified in the M6 play-test; hints not explicitly play-tested |
+| M5 | Citizens (first full gameplay loop) | Done (`e990771`); core behaviour verified in the M6 play-test; hints play-tested 2026-10-05 |
 | M6 | Save and load | Done |
 | M7 | Polish and deploy (private Vercel preview) | Done |
 
 ## Last Completed Step
-2026-10-04: M7 — Polish and deploy, implemented by Claude (see "M7
+2026-10-05: S2-M1 Foundations implemented by Claude (see "S2-M1
+Implementation"). The M5 hints play-test passed (Andre). Committed at
+Andre's request; not pushed.
+
+Before that: 2026-10-04: M7 — Polish and deploy, implemented by Claude (see "M7
 Implementation"). It includes:
 - the hover-chip fix
 - the private Vercel preview, with the production incident fixed and the
@@ -76,12 +80,8 @@ Committed and pushed as `e990771` at Andre's request. Andre hasn't
 confirmed a browser play-test of M5 yet.
 
 ## Current Task
-Stage 2 planning is done (2026-10-04).
-- The feature bank is saved as `docs/STAGE-2-FEATURE-BANK.md` (the source
-  of truth).
-- The reconciled roadmap is in `docs/STAGE-2-PLAN.md`.
-- The first milestone is detailed in `docs/S2-M1-PLAN.md`.
-- Nothing from Stage 2 is implemented yet.
+S2-M1 Foundations: implemented, verified locally and committed. Next: push
+(on request), then check the protected preview and run Playwright against it.
 
 ## Important Decisions
 - VS Code is the main development command center.
@@ -736,23 +736,98 @@ passing 10 of 10 against the preview.
   - GitHub branch protection for `production`
   - housekeeping
 
+## S2-M1 Implementation (2026-10-05, Claude)
+
+### Job matching (decision 6: optimise first, no cap)
+- `src/sim/citizens/jobs.ts`: same rules, faster search.
+  - A compact road graph (connected road tiles only).
+  - A once-per-day distance-to-open-work map, used as an exact lower bound.
+  - A guided per-home search over three reusable queues.
+- **Results are identical** to Stage 1. `tests/sim/jobsEquivalence.test.ts`
+  compares it with a verbatim copy of the Stage 1 matcher
+  (`tests/sim/reference/jobsStage1.ts`) on 40 random cities, a played-out
+  starter town and the far-jobs worst case.
+- **Benchmark** (3 runs, load average about 4–8): worst case median
+  **4.44–4.71 ms** (p95 4.9–5.5), down from about 6.4 ms. Steady day about
+  1.85 ms. **The 5 ms target is met, so no per-day cap was added.**
+
+### Generic service coverage
+- `BuildingDefinition.serviceRadius` became `services: [{ kind, radius }]`.
+  The Well is `{ kind: 'water', radius: 6 }`.
+- `src/sim/services/coverage.ts`:
+  - `activeServices(kind)`
+  - `isCovered(kind, …)`: the exact Stage 1 rule (footprint centres)
+  - `coverageMap(kind, …)`: the same rule per tile, for overlays only
+  - The Stage 1 names `staffedWells` and `wellCovers` stay as thin wrappers.
+- `Simulation.getCoverage(kind)` is cached by a new `getMapVersion()`. The
+  version is bumped by the daily step and by successful build and demolish
+  commands.
+- The InfoPanel shows "Water coverage: 6 tiles" instead of "Service radius".
+
+### Overlays and camera (render, UI and app only)
+- `src/render/overlays.ts` (pure, tested): None / Water / Roads tints and
+  legends.
+- `src/render/layers/OverlayLayer.ts`: translucent tile tints in 16×16
+  chunks. Only changed chunks are redrawn, and only when the kind or map
+  version changes.
+- `src/ui/MapControls.tsx` (bottom right): the overlay picker, its legend,
+  and a "⌂ Entrance" button.
+  - `O` cycles the overlays.
+  - `Home` glides to the Entrance (it jumps under reduced motion).
+
+### Day-boundary frames: measured, no code change
+`tests/e2e/perf.spec.ts`, `npm run test:e2e:perf`, headed, 2,000 citizens,
+load average about 7–10.
+- **Before:** 3× for 12 s gave 9/711 frames over 20 ms and 4 over 33 ms.
+  The worst was 67 ms, in the first days after load.
+- **Over 10 game days at 3×:**
+  - 4–6 of about 2,400 frames went over 20 ms (0.2%, inside the ≤ 1%
+    target).
+  - The worst frame was 34–35 ms.
+- **Where the time goes** (temporary probes, removed):
+  - the warm browser day step: 1.5–7 ms
+  - snapshot plus React: 0.3–0.7 ms per tick
+  - autosave: 1–13 ms, async
+  - Pixi rendering: about 10–12 ms in every frame
+- **The remaining 33–35 ms frames are not caused by the game.** They also
+  happened **while paused**, with no simulation or UI work: single missed
+  vsyncs under machine load. So the "no frame over 33 ms" target isn't
+  strictly met, but nothing in the day step causes it. Reported as a
+  measured note, per the plan.
+
+### Tests and tooling
+- **@perf:** opt-in (`grepInvert` by default; the `PW_PERF` environment
+  variable selects it). It asserts only fps ≥ 50 (measured 59–60).
+- **Environment probe:** the IndexedDB timeout went from 3 s to 10 s.
+- **Real-time polls:**
+  - clock: 5 s → 10 s, and 3 s → 8 s
+  - starter town: 40 s → 60 s
+- **New e2e test:** `O` cycles the overlays with a legend; the Entrance
+  button and the `Home` key work.
+- **"Unchanged" acceptance note:**
+  - Gameplay assertions are unchanged.
+  - Two Stage 1 tests needed the mechanical `serviceRadius` → `services`
+    rename (`tests/data/buildings.test.ts` and the custom-building fixture in
+    `tests/sim/citizenEdgeCases.test.ts`).
+  - Only e2e timeouts were raised.
+- **Fixed:** the folder name in `docs/STAGE-1-PLAN.md`.
+
+### Verification (2026-10-05)
+- 434/434 unit tests
+- typecheck and build clean (main chunk 419 kB, 123 kB gzipped)
+- 11/11 Playwright tests (local production build)
+- `git diff --check` clean
+- all files under 400 lines
+
 ## Next Step
 
-1. Implement **S2-M1 Foundations** from `docs/S2-M1-PLAN.md`, by Codex or
-   Claude:
-   - generic coverage, with the Well as the first `water` service
-   - overlay framework with Water and Road connectivity overlays
-   - zoom-to-Entrance
-   - job-matching caching (cap only if needed)
-   - day-boundary frame fix
-   - `@perf` spec and test hardening
-   - the `STAGE-1-PLAN.md` folder name fix
-2. Then review, Andre's play-test, a protected preview plus Playwright, and a
-   commit.
+1. **On request:** push, check the protected preview, and run Playwright
+   against it.
+2. **Then plan S2-M2** from `docs/STAGE-2-PLAN.md`.
 3. `production` is never touched without an explicit release request.
 
 ## Last Updated
 
 Date: 2026-10-05
-AI used: Claude (status refresh, QA and performance agents, handoff; Stage 2 plan; Stage 1 completion audit; M7 plan and implementation; M6 plan and implementation; M5 plan, review and fix pass); Codex (M5 implementation; M4
+AI used: Claude (S2-M1 implementation; status refresh, QA and performance agents, handoff; Stage 2 plan; Stage 1 completion audit; M7 plan and implementation; M6 plan and implementation; M5 plan, review and fix pass); Codex (M5 implementation; M4
 implementation); Claude (M4 plan, review and fix pass)

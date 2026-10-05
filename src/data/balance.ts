@@ -34,7 +34,7 @@ export const BALANCE = {
     hungryDaysBeforeLeaving: 5,
     unemployedDaysBeforeLeaving: 7,
     homelessDaysBeforeLeaving: 3,
-    // The Well's radius (6) lives on its definition: BUILDINGS → serviceRadius.
+    // The Well's water radius (6) lives on its definition: BUILDINGS → services.
   },
 } as const;
 

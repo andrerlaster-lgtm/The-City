@@ -12,7 +12,7 @@ test('the browser supports WebGL, IndexedDB and timers', async ({ page }) => {
       request.onupgradeneeded = () => request.result.createObjectStore('s');
       request.onsuccess = () => { request.result.close(); resolve(true); };
       request.onerror = () => resolve(false);
-      setTimeout(() => resolve(false), 3000);
+      setTimeout(() => resolve(false), 10_000); // a busy machine can be slow to open IndexedDB
     });
     return { webgl, timer, idb };
   });

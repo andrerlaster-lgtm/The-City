@@ -18,6 +18,8 @@ import { cityCapacity, emptyLedger, projectedDaily, type DailyReport, type Ledge
 import { runDaily } from './daily';
 import { citizenCounts, clearDemolishedAssignments, occupancyFor, type BuildingOccupancy, type Citizen } from './citizens/citizens';
 import { foodChangePerDay } from './resources/food';
+import { activeServices, coverageMap } from './services/coverage';
+import type { ServiceKind } from '../data/buildings';
 import { productionOf, type BuildingProduction } from './resources/production';
 
 export type { PlayerCommand, CommandResult } from './commands';
@@ -52,6 +54,9 @@ export interface SimSnapshot {
 export class Simulation {
   private state: GameState;
   private readonly rng: Rng;
+  /** Bumped whenever map-level data can change (a daily step, or a successful build/demolish). */
+  private mapVersion = 0;
+  private coverageCache = new Map<ServiceKind, { version: number; map: Uint8Array }>();
 
   constructor(seed: number, world: WorldMap = generateWorld(seed, BALANCE.map.width, BALANCE.map.height), startingTreasury: number = BALANCE.economy.startingTreasury) {
     this.rng = new Rng(seed);
@@ -106,6 +111,7 @@ export class Simulation {
     this.state.rngState = this.rng.getState();
     if (isDayStart(this.state.tick)) {
       runDaily(this.state, dayIndex(this.state.tick));
+      this.mapVersion++;
     }
     return { tick: this.state.tick, changedTiles: [], changedBuildings: [] };
   }
@@ -128,6 +134,7 @@ export class Simulation {
       this.state.treasury = next;
       this.state.economy.today.construction += preview.cost;
       const changedBuildings = refreshBuildingAccess(this.state.world, this.state.buildings);
+      this.mapVersion++;
       return { ok: true, reason: null, cost: preview.cost, changedTiles: [...placed, ...connectivityChanged], changedBuildings, treasury: next };
     }
     if (command.type === 'place-building') {
@@ -136,6 +143,7 @@ export class Simulation {
       this.state.nextEntityId++;
       this.state.treasury = result.treasury;
       this.state.economy.today.construction += result.cost;
+      this.mapVersion++;
       return { ok: true, reason: null, cost: result.cost, changedTiles: result.tiles, changedBuildings: [result.building.id], treasury: result.treasury };
     }
     const removedBuildings = removeBuildingsAt(this.state.world, this.state.buildings, command.tiles);
@@ -143,11 +151,24 @@ export class Simulation {
     const { removed, connectivityChanged } = demolishRoads(this.state.world, command.tiles);
     if (!removed.length && !removedBuildings.removed.length) return fail('Nothing to remove.', 0, treasury);
     const changedBuildings = refreshBuildingAccess(this.state.world, this.state.buildings);
+    this.mapVersion++;
     return {
       ok: true, reason: null, cost: 0,
       changedTiles: [...removed, ...removedBuildings.changedTiles, ...connectivityChanged],
       changedBuildings: [...removedBuildings.removed, ...changedBuildings], treasury,
     };
+  }
+
+  /** Changes whenever coverage, roads or buildings may have changed; lets readers skip redraws. */
+  getMapVersion(): number { return this.mapVersion; }
+
+  /** Per-tile coverage of `kind` from active service buildings. Read-only; cached per map version. */
+  getCoverage(kind: ServiceKind): Readonly<Uint8Array> {
+    const cached = this.coverageCache.get(kind);
+    if (cached && cached.version === this.mapVersion) return cached.map;
+    const map = coverageMap(kind, activeServices(this.state.buildings, this.state.citizens, kind), this.state.world);
+    this.coverageCache.set(kind, { version: this.mapVersion, map });
+    return map;
   }
 
   /** Cheap per-frame read for the app loop (snapshot() also computes projections). */
