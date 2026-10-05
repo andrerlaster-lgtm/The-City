@@ -11,7 +11,7 @@ in → expand → population grows. Full plan and acceptance criteria:
 `docs/STAGE-1-PLAN.md`.
 
 ## Current Stage
-Stage 1, milestones M0–M5 committed and pushed. M5 (`e990771`) was committed and pushed before its browser play-test was confirmed, and it still isn't confirmed. **M6 planned and ready for implementation** (`docs/M6-PLAN.md`).
+Stage 1, milestones M0–M5 committed and pushed. Andre's M6 play-test covered the core M5 behaviour: production, disconnecting and reconnecting. The M5 road-connection hints haven't been explicitly play-tested. **M6 — Save and load is done: Andre's browser play-test passed and it's committed (not pushed yet). M7 (Polish and deploy) is next, and hasn't been started.**
 
 | # | Milestone | Status |
 |---|---|---|
@@ -20,12 +20,25 @@ Stage 1, milestones M0–M5 committed and pushed. M5 (`e990771`) was committed a
 | M2 | Roads | Done |
 | M3 | Buildings | Done |
 | M4 | Time and economy | Done |
-| M5 | Citizens (first full gameplay loop) | Committed and pushed (`e990771`); browser play-test not confirmed |
-| M6 | Save and load | Planned, ready for implementation |
+| M5 | Citizens (first full gameplay loop) | Done (`e990771`); core behaviour verified in the M6 play-test; hints not explicitly play-tested |
+| M6 | Save and load | Done (play-tested, committed; push pending) |
 | M7 | Polish and deploy (private Vercel preview) | Not started |
 
 ## Last Completed Step
-2026-10-04: M5 — Citizens, implemented from the approved plan. It adds the
+2026-10-04: M6 — Save and load implemented by Claude from `docs/M6-PLAN.md`
+(see "M6 Implementation"), plus per-building food and revenue output. Andre's
+browser play-test passed on 2026-10-04. It covered:
+- save and load
+- pause on load
+- seed persistence and display
+- Farm and Workshop output
+- disconnected output dropping to 0
+- reconnecting
+- city totals matching the per-building totals
+
+Claude's final review passed. M6 is committed, not pushed yet.
+
+Before that: M5 — Citizens, implemented from the approved plan. It adds the
 deterministic citizen lifecycle, daily housing and job assignment, food
 production and consumption, the Well housing preference, real taxes and
 workshop revenue, migration/departure reporting, live UI counts, and a
@@ -41,8 +54,8 @@ Committed and pushed as `e990771` at Andre's request. Andre hasn't
 confirmed a browser play-test of M5 yet.
 
 ## Current Task
-M6 — Save and load: plan approved 2026-10-04 and saved as `docs/M6-PLAN.md`.
-Nothing has been implemented. The M5 browser play-test is still unconfirmed.
+None in progress. M6 is committed. Push it when Andre asks, then plan M7.
+Don't start M7 yet.
 
 ## Important Decisions
 - VS Code is the main development command center.
@@ -138,8 +151,22 @@ Core rule: **the simulation never knows the screen exists.**
 - `src/app/` — `Game.ts` composition root wiring sim + renderer + input + UI;
   `loop.ts` has the testable fixed-step accumulator; `store.ts` publishes
   snapshots.
-- Flow: input → **commands** → sim → **snapshots** → renderer/UI. The save
-  system is not built yet.
+- Flow: input → **commands** → sim → **snapshots** → renderer/UI.
+- `src/save/` — the versioned save format:
+  - `format`, `serialize`, `validate` and `migrations`
+  - `slots`, for list, save, load and delete
+  - providers: IndexedDB through `idb-keyval`, and an in-memory provider for
+    tests
+  - Pure, apart from the IndexedDB provider. It never touches the running
+    game.
+- `sim/restore.ts` rebuilds derived data on load. `Simulation.fromState` and
+  `exportState` support saving.
+- `app/saveService.ts` handles:
+  - continuing from the autosave on startup (paused)
+  - autosave
+  - slot actions
+  - new-game seeds from `crypto.getRandomValues`. The simulation never
+    generates seeds, and a test enforces this.
 - Guard rails: no source file over 400 lines (tested).
 
 ## Main Technologies
@@ -176,11 +203,31 @@ Scripts: `npm run dev`, `npm test`, `npm run typecheck`, `npm run build`.
   homelessness departures, immediate occupancy updates on demolition, real
   resident/employment taxes and workshop revenue, food and migration ledger,
   live top-bar and building occupancy data, and a Citizens panel.
-- Tests: 210 passing across data, footprint/placement/access/demolition,
+- M6: 3 manual save slots plus autosave, a Menu with save, load, delete and
+  new game (confirmations inside the panel), the world seed shown with a
+  Copy button, and continuing from the autosave on startup. Loaded games
+  start paused.
+- Tests: 284 passing across data, footprint/placement/access/demolition,
   determinism, roads, world generation, camera math, sim-purity and file-size
   guards.
 
 ## Known Issues (verified 2026-10-04)
+
+- M6 validation (with per-building output): 284 tests passed (the full suite passed 6 runs in a row),
+  and typecheck, build and `git diff --check` passed.
+- M6 browser play-test passed (Andre, 2026-10-04). Headless Chrome on this
+  machine can't run the async startup, because IndexedDB and timers never
+  answer there. That's an environment limit, so browser checks rely on
+  Andre's play-tests.
+- If storage never answers, the game now starts a new city after 3 s with
+  saving off for that session, and shows a message. This keeps the game from
+  getting stuck on a blank screen, and stops a later autosave from
+  overwriting a real save it couldn't read.
+- Only maps of the same size can be loaded: input bounds are set up once at
+  start. All maps are 128×128 today, so this is noted for when map size
+  becomes a setting.
+- Two tabs autosaving at once: the last write wins. This is noted, not
+  solved, in Stage 1.
 
 - M3 validation: 125 tests passed; typecheck, production build and
   `git diff --check` passed.
@@ -202,9 +249,9 @@ Scripts: `npm run dev`, `npm test`, `npm run typecheck`, `npm run build`.
     same scenario swings between about 3.6 and 11 ms run to run.
 - The top-bar Food stat wraps onto two lines ("30 / (+0/day)"). This is
   cosmetic.
-- The M5 browser play-test, including the road-connection hints, hasn't been
-  confirmed. M5 is already committed and pushed, so any fixes go in a
-  follow-up commit.
+- M5 behaviour (production, disconnected output dropping to 0, reconnecting)
+  was verified in Andre's M6 play-test. The road-connection hints haven't
+  been explicitly play-tested. Any fixes go in a follow-up commit.
 - M3 browser play-test passed (Andre, 2026-10-04, after the rendering fix):
   road/ghost/building alignment, placement reasons, all five buildings, depth,
   info panel connected/disconnected, and demolish with no refund.
@@ -229,8 +276,9 @@ Repository: https://github.com/andrerlaster-lgtm/The-City
 
 Branch: `main`
 
-Working tree: clean. M5 is committed and pushed, and local `main` matches
-`origin/main`.
+Working tree: clean after the M6 commit. `main` is 1 commit ahead of
+`origin/main`: the M6 commit isn't pushed. M5 (`e990771`) and the M6 plan
+(`230a139`) are pushed.
 
 ## Vercel
 
@@ -372,26 +420,96 @@ Validation: 125 tests passed. `npm run typecheck`, `npm run build` and
    - the 3-sample timing test is replaced by a warmed-up benchmark that
      includes the far-jobs worst case
 
+## M6 Implementation (2026-10-04, Claude)
+
+### Save files and loading
+- **Format:** `{ format, version: 1, meta, state }`. The state holds the base
+  layers (`terrain`, `variant`, `trees`, `roads`), the core values, the
+  ledger, the id counters, buildings (`id`, `defId`, `x`, `y`) and citizens,
+  sorted by id.
+- **Never stored, rebuilt on load:** road connectivity, `buildingAt` and the
+  building access flags (`sim/restore.ts`).
+- **Load pipeline:** envelope check → migrate → full validation → rebuild.
+  Migrations run before validation, so validation always sees the current
+  schema.
+- **Validation covers:** format and version, layer lengths, terrain ids,
+  building types, building ids, overlaps, buildings on water, roads or off
+  the map, citizen references, id counters, the entrance and speed, and the
+  ledger shape.
+
+### Pausing and seeds
+- **Loads start paused:** `Game.replaceSimulation(sim, { paused: true })`
+  and the startup path force speed 0. Space resumes at the saved speed.
+- **New games:** an app-made seed at 1×, or a seed the player types. The
+  seed is shown in the menu, can be selected, and has a Copy button. Each
+  slot also shows its seed.
+
+### Autosave and slots
+- **Autosave runs:**
+  - every 5 game days at 00:00
+  - when the tab is hidden
+  - before loading a manual slot or starting a new game
+  - It's skipped before loading the autosave itself, so that load can't
+    overwrite the save it's about to read.
+- **Confirmations happen inside the panel.**
+  - Loading a manual slot says "Your current city is autosaved first", which
+    is accurate because of the autosave before loading.
+  - Loading the autosave warns that progress since it was made will be lost.
+- **Status messages** appear in the menu and as a short-lived toast.
+
+### Safeguards and tests
+- **Storage timeout:** see Known Issues.
+- **Guards:** `src/sim` may not use `crypto`. `src/save` may not import
+  rendering, UI or app code, and only the IndexedDB provider may use
+  `idb-keyval`.
+- **Tests** (69 new across `tests/save/` and the guards):
+  - a round trip of save, clone, validate, load and then 30 days, identical
+    to playing straight through at 1× and 3×
+  - saves are identical for the same city and copy rather than share data
+  - every validation rejection
+  - migrations
+  - the save service:
+    - slots
+    - autosave
+    - startup continue and fallback
+    - paused load
+    - a rejected save never touches the game
+    - storage errors and storage that never answers
+  - save-and-load timing for 2,000 citizens
+- **M5 performance test:** under the full parallel suite (load average about
+  20) it was flaky. It now checks the far-jobs vs steady ratio, which is
+  about 1–3 now and was about 27 before the M5 fix, plus a loose absolute
+  bound. It still logs the medians and p95s.
+
+## Per-building Output (2026-10-04, Claude, Andre's request)
+
+- Clicking a Farm shows its daily food, for example "+10 food / day (5
+  workers × 2)", or "needs workers".
+- Clicking a Workshop shows its daily revenue the same way.
+- The numbers come from `sim/resources/production.ts`, which uses the same
+  rules as the daily step. Tests check that per-building output adds up to
+  the city totals.
+- Play-tested and committed with M6.
+
 ## Next Step
 
-1. Implement **M6 — Save and load** following `docs/M6-PLAN.md` (Codex or
-   Claude):
-   - the versioned save format, validation and migrations
-   - `SaveProvider` with IndexedDB and memory providers
-   - `Simulation.fromState` and `exportState`
-   - `Renderer.rebuildWorld`
-   - 3 slots plus autosave, and continue on startup (paused)
-   - random new-game seeds generated by the app
-   - the SaveMenu showing the seed
-2. Claude reviews it (tests, typecheck, build), then Andre play-tests it in
-   the browser.
-3. Still open from M5:
-   - confirm the M5 browser play-test (hints, arrivals, food, disconnecting)
-   - decide on the per-day job-matching limit, only if the worst-case hitch
-     is noticeable
+1. Push M6 when Andre asks.
+2. Plan **M7 — Polish and deploy**. Don't start until Andre asks. Scope from
+   the Stage 1 plan:
+   - shadows and pop-in animations
+   - UI transitions and number tweening
+   - a balance pass
+   - toasts
+   - the first private Vercel preview
+3. Still open:
+   - The M5 road-connection hints haven't been explicitly play-tested on their
+     own. Reconnecting and production were covered by the M6 play-test.
+   - Decide on the per-day job-matching limit, only if the worst-case hitch
+     is noticeable.
+   - The Food stat in the top bar wraps onto two lines (cosmetic).
 
 ## Last Updated
 
 Date: 2026-10-04
-AI used: Claude (M6 plan; M5 plan, review and fix pass); Codex (M5 implementation; M4
+AI used: Claude (M6 plan and implementation; M5 plan, review and fix pass); Codex (M5 implementation; M4
 implementation); Claude (M4 plan, review and fix pass)

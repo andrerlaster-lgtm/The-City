@@ -2,8 +2,10 @@ import { buildingDefinition } from '../data/buildings';
 import type { BuildingInstance } from '../sim/buildings/buildings';
 import { formatNumber } from './format';
 import type { BuildingOccupancy } from '../sim/citizens/citizens';
+import type { BuildingProduction } from '../sim/resources/production';
+import { BALANCE } from '../data/balance';
 
-export function InfoPanel({ building, occupancy }: { building: BuildingInstance | null; occupancy: BuildingOccupancy | null }) {
+export function InfoPanel({ building, occupancy, production }: { building: BuildingInstance | null; occupancy: BuildingOccupancy | null; production: BuildingProduction | null }) {
   if (!building) return null;
   const definition = buildingDefinition(building.defId);
   if (!definition) return null;
@@ -17,10 +19,18 @@ export function InfoPanel({ building, occupancy }: { building: BuildingInstance 
       <dt>Cost</dt><dd>{formatNumber(definition.cost)} coins</dd>
       <dt>Upkeep</dt><dd>{formatNumber(definition.upkeep)} coins / day</dd>
       <dt>{definition.housing > 0 ? 'Housing' : 'Work'}</dt><dd>{capacity}</dd>
+      {definition.produces === 'food' && <><dt>Food</dt><dd className={production?.food ? '' : 'info-panel__warning'}>{outputText(production?.food ?? 0, production?.workers ?? 0, BALANCE.citizens.foodPerFarmWorker, 'food')}</dd></>}
+      {definition.produces === 'revenue' && <><dt>Revenue</dt><dd className={production?.revenue ? '' : 'info-panel__warning'}>{outputText(production?.revenue ?? 0, production?.workers ?? 0, BALANCE.economy.workshopRevenuePerWorker, 'coins')}</dd></>}
       {definition.serviceRadius > 0 && <><dt>Service radius</dt><dd>{definition.serviceRadius} tiles</dd></>}
       <dt>Road access</dt><dd>{building.roadAccess ? 'Yes' : 'No'}</dd>
       <dt>Entrance connection</dt><dd className={!building.connected ? 'info-panel__warning' : ''}>{building.connected ? 'Connected' : 'Disconnected'}</dd>
       {!building.connected && <><dt className="info-panel__warning" /><dd className="info-panel__warning">Residents/jobs don't count until connected</dd></>}
     </dl>
   </aside>;
+}
+
+/** "+10 food / day (5 workers × 2)", or why it's zero. */
+function outputText(amount: number, workers: number, perWorker: number, unit: string): string {
+  if (workers === 0) return `0 ${unit} / day · needs workers`;
+  return `+${formatNumber(amount)} ${unit} / day (${workers} worker${workers === 1 ? '' : 's'} × ${perWorker})`;
 }

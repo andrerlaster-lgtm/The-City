@@ -7,7 +7,7 @@ interface Stat {
   icon: string;
 }
 
-export function TopBar({ snapshot, onEconomy, onCitizens }: { snapshot: SimSnapshot; onEconomy: () => void; onCitizens: () => void }) {
+export function TopBar({ snapshot, onEconomy, onCitizens, onMenu }: { snapshot: SimSnapshot; onEconomy: () => void; onCitizens: () => void; onMenu: () => void }) {
   const stats: Stat[] = [
     { label: 'Population', value: formatNumber(snapshot.population), icon: '☺' },
     { label: 'Free housing', value: formatNumber(snapshot.freeHousing), icon: '⌂' },
@@ -34,6 +34,7 @@ export function TopBar({ snapshot, onEconomy, onCitizens }: { snapshot: SimSnaps
         <span className="clock__hour">{formatHour(snapshot.date)}</span>
       </div>
       <span className="top-bar__speed">{snapshot.speed === 0 ? '⏸' : `${snapshot.speed}×`}</span>
+      <button className="top-bar__menu" type="button" onClick={onMenu} aria-label="Open game menu (save, load, new game)">Menu</button>
     </header>
   );
 }

@@ -32,7 +32,7 @@ export type Tool = 'road' | 'demolish' | { build: BuildingId };
 export type ToolPreview = ({ kind: 'road' } & RoadPreview) | ({ kind: 'build'; access: AccessState } & BuildingPreview) | { kind: 'demolish'; removable: number };
 
 export class Game {
-  readonly sim: Simulation;
+  private current: Simulation;
   readonly renderer = new Renderer();
   readonly snapshot: Store<SimSnapshot>;
   readonly hover = new Store<HoverInfo | null>(null);
@@ -43,14 +43,41 @@ export class Game {
   private hoveredTile: TileCoord | null = null;
   private readonly stepper = new FixedStepper();
   private lastSpeed: 1 | 2 | 3 = 1;
+  private started = false;
+  /** Called after every simulation tick (the save service autosaves from here). */
+  onTick: ((tick: number) => void) | null = null;
 
-  constructor(seed: number) {
-    this.sim = new Simulation(seed);
+  /** `paused` (used for loaded games) forces speed 0: no time passes until the player resumes. */
+  constructor(sim: Simulation, options: { paused?: boolean } = {}) {
+    this.current = sim;
+    if (options.paused) this.pauseForLoad();
     this.snapshot = new Store(this.sim.snapshot());
+  }
+
+  get sim(): Simulation { return this.current; }
+
+  /**
+   * Swaps in another simulation (a loaded save or a new game). Tools, selection and
+   * hover are cleared first, so an in-progress drag can't apply to the new city.
+   * Only same-size maps can be swapped: input bounds are set up once at start.
+   */
+  replaceSimulation(sim: Simulation, options: { paused: boolean }): void {
+    const next = sim.getWorld(); const now = this.current.getWorld();
+    if (next.width !== now.width || next.height !== now.height) throw new Error(`Map size ${next.width}×${next.height} differs from this build (${now.width}×${now.height}).`);
+    this.setTool(null);
+    this.hover.set(null);
+    this.hoveredTile = null;
+    this.stepper.advance(0, 0);
+    this.current = sim;
+    if (options.paused) this.pauseForLoad();
+    else this.lastSpeed = sim.getSpeed() === 0 ? this.lastSpeed : sim.getSpeed() as 1 | 2 | 3;
+    if (this.started) this.renderer.rebuildWorld(sim.getWorld(), sim.getBuildings());
+    this.publish();
   }
 
   async start(canvasHost: HTMLElement): Promise<void> {
     await this.renderer.init(canvasHost);
+    this.started = true;
     const world = this.sim.getWorld();
     const camera = this.renderer.showWorld(world);
     this.renderer.app.ticker.add((ticker) => {
@@ -58,7 +85,7 @@ export class Game {
       if (speed !== 0) this.lastSpeed = speed;
       const count = this.stepper.advance(ticker.deltaMS, speed);
       if (count === 0) return;
-      for (let i = 0; i < count; i++) this.sim.tick();
+      for (let i = 0; i < count; i++) this.onTick?.(this.sim.tick().tick);
       this.publish();
     });
     attachKeyboardPan(camera, this.renderer.app.ticker);
@@ -162,6 +189,13 @@ export class Game {
     if (definition && preview && access) this.toolPreview.set({ kind: 'build', ...preview, access: access.access });
     else if (this.tool.get() && typeof this.tool.get() === 'object') this.toolPreview.set(null);
     this.renderer.updatePlacement(definition, this.hoveredTile, preview, access?.hints);
+  }
+
+  /** Remembers the saved speed for Space-to-resume, then pauses. */
+  private pauseForLoad(): void {
+    const saved = this.current.getSpeed();
+    if (saved !== 0) this.lastSpeed = saved;
+    this.current.applyCommand({ type: 'set-speed', speed: 0 });
   }
 
   /** Call after the simulation changes so the UI re-reads it. */

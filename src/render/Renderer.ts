@@ -73,15 +73,33 @@ export class Renderer {
     this.world.addChild(this.terrain.container, this.roads.container, this.objects.container, this.hover.container, this.ghost.container, this.markers.container);
     this.camera.addChild(this.world);
     this.app.stage.addChild(this.camera);
-    // Start looking at the settlement entrance: every road has to begin there.
-    if (world.entranceIndex >= 0) {
-      const top = tileToScreen(world.entranceIndex % world.width, Math.floor(world.entranceIndex / world.width));
-      this.camera.moveCenter(offset.x + top.x, offset.y + top.y + TILE_HEIGHT / 2);
-    }
+    this.centreOnEntrance(world);
 
     const hover = this.hover;
     this.app.ticker.add((t) => hover.update(t));
     return this.camera;
+  }
+
+  /**
+   * Redraws every map layer for another world of the same size (a loaded save or a
+   * new game), clears transient overlays and looks at the new entrance.
+   */
+  rebuildWorld(world: Readonly<WorldMap>, buildings: readonly BuildingInstance[]): void {
+    this.terrain?.build(world);
+    this.roads?.build(world);
+    this.objects?.build(world, buildings);
+    this.markers?.setEntrance(world);
+    this.markers?.setBuildingWarnings(buildings);
+    this.hover?.setTile(null);
+    this.ghost?.update(null, undefined, null, null);
+    this.centreOnEntrance(world);
+  }
+
+  /** Start looking at the settlement entrance: every road has to begin there. */
+  private centreOnEntrance(world: Readonly<WorldMap>): void {
+    if (!this.camera || world.entranceIndex < 0) return;
+    const top = tileToScreen(world.entranceIndex % world.width, Math.floor(world.entranceIndex / world.width));
+    this.camera.moveCenter(this.world.position.x + top.x, this.world.position.y + top.y + TILE_HEIGHT / 2);
   }
 
   /** Screen point → map projection coordinates (inverse of tileToScreen space). */

@@ -18,6 +18,7 @@ import { cityCapacity, emptyLedger, projectedDaily, type DailyReport, type Ledge
 import { runDaily } from './daily';
 import { citizenCounts, clearDemolishedAssignments, occupancyFor, type BuildingOccupancy, type Citizen } from './citizens/citizens';
 import { foodChangePerDay } from './resources/food';
+import { productionOf, type BuildingProduction } from './resources/production';
 
 export type { PlayerCommand, CommandResult } from './commands';
 
@@ -30,6 +31,8 @@ export interface TickResult {
 
 /** Read-only view handed to the renderer and UI. */
 export interface SimSnapshot {
+  /** The world seed this game was created with (chosen by the app, never by the sim). */
+  seed: number;
   tick: number;
   date: GameDate;
   treasury: number;
@@ -67,6 +70,36 @@ export class Simulation {
       food: BALANCE.citizens.startingFood,
     };
   }
+
+  /**
+   * Resumes a game from a complete, already-validated state (see src/save). The
+   * seeded Rng continues from `rngState`. Derived data must already be rebuilt.
+   */
+  static fromState(state: GameState): Simulation {
+    const sim = new Simulation(state.seed, state.world, state.treasury);
+    sim.state = state;
+    sim.rng.setState(state.rngState);
+    return sim;
+  }
+
+  /** A deep copy of the full state, safe to serialize while the game keeps running. */
+  exportState(): GameState {
+    const { world, economy } = this.state;
+    return {
+      ...this.state,
+      world: {
+        ...world,
+        terrain: world.terrain.slice(), trees: world.trees.slice(), variant: world.variant.slice(),
+        roads: world.roads.slice(), roadConnected: world.roadConnected.slice(), buildingAt: world.buildingAt.slice(),
+      },
+      buildings: this.state.buildings.map((building) => ({ ...building })),
+      citizens: this.state.citizens.map((citizen) => ({ ...citizen })),
+      // Plain numbers only, so a JSON round trip is an exact deep copy (no host APIs in the sim).
+      economy: JSON.parse(JSON.stringify(economy)) as GameState['economy'],
+    };
+  }
+
+  getTick(): number { return this.state.tick; }
 
   tick(): TickResult {
     this.state.tick += 1;
@@ -133,6 +166,8 @@ export class Simulation {
   getBuilding(id: number): BuildingInstance | undefined { const building = this.state.buildings.find((item) => item.id === id); return building ? { ...building } : undefined; }
   getBuildingAt(x: number, y: number): BuildingInstance | undefined { return buildingAtTile(this.state.world, this.state.buildings, x, y); }
   getOccupancy(id: number): BuildingOccupancy { return occupancyFor(id, this.state.citizens); }
+  /** Daily food or revenue from one building, by the same rules as the daily step. */
+  getProduction(id: number): BuildingProduction { return productionOf(id, this.state.buildings, this.state.citizens); }
   getCitizens(): readonly Citizen[] { return this.state.citizens.map((citizen) => ({ ...citizen })); }
 
   /** Read-only access for the renderer. Callers must not write to the layers. */
@@ -144,6 +179,7 @@ export class Simulation {
     const counts = citizenCounts(this.state.citizens, this.state.buildings);
     const capacity = cityCapacity(this.state.buildings, this.state.citizens);
     return {
+      seed: this.state.seed,
       tick: this.state.tick,
       date: tickToDate(this.state.tick),
       treasury: this.state.treasury,
