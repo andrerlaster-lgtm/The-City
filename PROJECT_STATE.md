@@ -11,7 +11,7 @@ in → expand → population grows. Full plan and acceptance criteria:
 `docs/STAGE-1-PLAN.md`.
 
 ## Current Stage
-Stage 1, milestones M0–M4 done and committed. **M5 (Citizens) is next** (not planned yet).
+Stage 1, milestones M0–M4 done, committed and pushed. **M5 planned and ready for implementation** (`docs/M5-PLAN.md`).
 
 | # | Milestone | Status |
 |---|---|---|
@@ -20,7 +20,7 @@ Stage 1, milestones M0–M4 done and committed. **M5 (Citizens) is next** (not p
 | M2 | Roads | Done |
 | M3 | Buildings | Done |
 | M4 | Time and economy | Done |
-| M5 | Citizens (first full gameplay loop) | Not started |
+| M5 | Citizens (first full gameplay loop) | Planned, ready for implementation |
 | M6 | Save and load | Not started |
 | M7 | Polish and deploy (private Vercel preview) | Not started |
 
@@ -36,11 +36,10 @@ plan. It adds:
 
 Andre's browser play-test passed. Claude's final review found two misleading
 economy-panel figures and a few smaller issues, and Claude's fix pass resolved
-them (see "M4 Review Fixes"). M4 is committed locally at Andre's request,
-and not pushed.
+them (see "M4 Review Fixes"). M4 is committed (`ba872ad`) and pushed.
 
 ## Current Task
-None in progress. M5 planning is next.
+M5 — Citizens: plan approved 2026-10-04 and saved as `docs/M5-PLAN.md`. Nothing has been implemented.
 
 ## Important Decisions
 - VS Code is the main development command center.
@@ -61,6 +60,20 @@ None in progress. M5 planning is next.
     free.
   - Every building pays upkeep, including disconnected ones.
   - New games start at 1×.
+- M5 (approved 2026-10-04):
+  - No randomness: arrivals and every other choice follow fixed rules.
+  - Starting numbers, all in `BALANCE` and tuned in M7:
+    - taxes: 1 per resident, 2 per employed citizen
+    - workshop revenue: 2 per worker
+    - farms: 2 food per worker; each citizen eats 1 food
+    - starting food: 30
+    - at most 4 arrivals per day
+    - leaves after 5 days hungry, 7 days unemployed or 3 days homeless
+    - Well radius 6, and the Well needs its 1 worker
+  - Disconnection: residents of a disconnected home keep it but count as
+    homeless and lose their jobs. They leave after 3 days unless it's
+    reconnected.
+  - Stable jobs: only unemployed citizens are matched each day.
 
 ## Current Architecture
 Core rule: **the simulation never knows the screen exists.**
@@ -176,8 +189,9 @@ Repository: https://github.com/andrerlaster-lgtm/The-City
 
 Branch: `main`
 
-Working tree: clean. `main` is 2 commits ahead of `origin/main` (the M4
-plan and M4), and neither is pushed.
+Working tree: clean. The M4 plan (`8ca9fcc`) and M4 (`ba872ad`) are pushed.
+The M5 plan commit is local only, not pushed, so `main` is 1 ahead of
+`origin/main`.
 
 ## Vercel
 
@@ -275,17 +289,18 @@ Validation: 125 tests passed. `npm run typecheck`, `npm run build` and
 
 ## Next Step
 
-1. Push M4 when Andre asks.
-2. Plan **M5 — Citizens**:
-   - arrivals (paused while `immigrationPaused`)
-   - housing and jobs, with job matching by road distance
-   - food from farms
-   - Well happiness
+1. Implement **M5 — Citizens** following `docs/M5-PLAN.md` (Codex or Claude):
+   - the citizen model
+   - the daily steps: production, consumption, economy, jobs, migration, stats
+   - housing and job matching by road distance
+   - food and the Well boost
    - departures
-   - live top-bar stats
-   - taxes using `taxesFor(residents, employed)`
+   - real taxes and workshop revenue
+   - top-bar stats, building occupancy, and the CitizensPanel
+2. Claude reviews it (tests, typecheck, build), then Andre play-tests it in
+   the browser.
 
 ## Last Updated
 
 Date: 2026-10-04
-AI used: Codex (M4 implementation), Claude (M4 plan, review and fix pass)
+AI used: Claude (M5 plan); Codex (M4 implementation), Claude (M4 plan, review and fix pass)
