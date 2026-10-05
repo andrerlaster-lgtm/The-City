@@ -662,43 +662,48 @@ passing 10 of 10 against the preview.
 
 ## Stage 1 Status (2026-10-04)
 
-All milestones M0–M7 are done and play-tested.
+**Stage 1 is complete.** The full audit is in `docs/STAGE-1-COMPLETION.md`:
+25 criteria PASS, 3 PARTIAL, 0 FAIL. Stage 2 is ready.
 
-### Against the Stage 1 acceptance criteria
-- **World, roads, buildings, citizens, economy and time, save:** met, and
-  covered by unit tests, scenario tests and Playwright.
-- **Quality:**
-  - `src/sim` is pure (guard tests).
-  - Every building definition is validated.
-  - Scenes can be set up headlessly.
-  - Job matching uses road distance, the same way every run.
-  - A hidden tab never runs a burst of ticks.
-  - No file is over 400 lines.
-  - 378 unit tests plus 10 Playwright tests.
-- **Private Vercel preview:** deployed. The first deploy's production alias
-  was removed, then the preview deployed, as the plan anticipated. Later the
-  accidental production deployment was removed entirely.
-- **Not fully verified:** "60 fps with a full map and 2,000 citizens". The
-  simulation day is measured (about 1.9 ms normally, about 6.4 ms in the
-  rare mass-unemployment worst case), but frame rate with 2,000 citizens
-  hasn't been measured in a browser.
-
-### Open items carried forward
-- The per-day job-matching limit, only if the worst-case hitch is noticeable.
-- One-finger touch drag with a drag tool may still pan the camera.
-- Two tabs autosaving at once: the last write wins.
-- Only maps of the same size can be loaded.
-- The project has no production deployment, so the next deploy may be
-  assigned to production. Check the target before every deploy.
+- **Frame rate:** measured in headed Chrome with a full 128×128 map and
+  2,000 citizens. 59.3 fps at 3× (p95 frame 17.6 ms) and 60.3 fps paused.
+  8 of 712 frames went over 20 ms (worst 49 ms), around day boundaries.
+- **PARTIAL:**
+  - Pinch zoom hasn't been verified on a touch device.
+  - A map size other than 128×128 hasn't been run in a browser, and saves of
+    a different size can't be loaded.
+  - The simulation day is usually about 1.9 ms, but the rare worst case is
+    about 6.4 ms, over the 5 ms target.
+- **Carried forward:** see `docs/STAGE-1-COMPLETION.md` §5.
+  - job-matching limit
+  - long frames at day boundaries
+  - touch input
+  - map-size saves
+  - two-tab autosave
+  - M5 hints play-test
+  - flaky timing tests under heavy machine load
+  - GitHub branch protection for `production`
+  - housekeeping
 
 ## Next Step
 
-1. Push M7 when Andre asks.
-2. Review Stage 1 (optionally measure frame rate with 2,000 citizens), then
-   plan Stage 2.
+1. Andre reviews `docs/STAGE-1-COMPLETION.md` and decides which
+   carried-forward items go into Stage 2.
+2. **Safety items, verified 2026-10-04 and still open:**
+   - **`production` isn't protected.** GitHub branch protection and
+     rulesets need GitHub Pro for this private repo (HTTP 403).
+     Recommended: the Vercel guard
+     `"git": { "deploymentEnabled": { "production": false } }` in
+     `vercel.json` (needs Andre's approval).
+   - **`sim-game` isn't archived yet** (it's still public, but unused by
+     Vercel).
+   - **The automation-bypass secret isn't revoked yet.**
+   - No production deployment exists.
+3. Plan Stage 2. Don't start until Andre asks. Never push to `production`
+   without an explicit request.
 
 ## Last Updated
 
 Date: 2026-10-04
-AI used: Claude (M7 plan and implementation; M6 plan and implementation; M5 plan, review and fix pass); Codex (M5 implementation; M4
+AI used: Claude (Stage 1 completion audit; M7 plan and implementation; M6 plan and implementation; M5 plan, review and fix pass); Codex (M5 implementation; M4
 implementation); Claude (M4 plan, review and fix pass)
