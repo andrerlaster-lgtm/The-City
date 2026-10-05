@@ -17,6 +17,8 @@ import type { BuildingInstance } from '../sim/buildings/buildings';
 import type { BuildingPreview } from '../sim/buildings/placement';
 import { accessHints, type AccessState } from '../render/accessHints';
 import { FixedStepper } from './loop';
+import { watchReducedMotion } from './motion';
+import { ToastStore } from './toasts';
 
 /** What the UI shows about the tile under the cursor. */
 export interface HoverInfo {
@@ -39,6 +41,10 @@ export class Game {
   readonly tool = new Store<Tool | null>(null);
   readonly toolPreview = new Store<ToolPreview | null>(null);
   readonly selectedBuilding = new Store<BuildingInstance | null>(null);
+  readonly toasts = new ToastStore();
+  /** The player's reduced-motion preference (renderer effects and number tweening follow it). */
+  readonly reducedMotion = new Store<boolean>(false);
+  private wasInDebt = false;
   private detachTools: (() => void) | null = null;
   private hoveredTile: TileCoord | null = null;
   private readonly stepper = new FixedStepper();
@@ -46,6 +52,8 @@ export class Game {
   private started = false;
   /** Called after every simulation tick (the save service autosaves from here). */
   onTick: ((tick: number) => void) | null = null;
+  /** Called after the player changes the city or the speed (the save service autosaves from here). */
+  onChange: ((kind: 'command' | 'speed') => void) | null = null;
 
   /** `paused` (used for loaded games) forces speed 0: no time passes until the player resumes. */
   constructor(sim: Simulation, options: { paused?: boolean } = {}) {
@@ -78,6 +86,7 @@ export class Game {
   async start(canvasHost: HTMLElement): Promise<void> {
     await this.renderer.init(canvasHost);
     this.started = true;
+    watchReducedMotion((reduced) => { this.reducedMotion.set(reduced); this.renderer.setReducedMotion(reduced); });
     const world = this.sim.getWorld();
     const camera = this.renderer.showWorld(world);
     this.renderer.app.ticker.add((ticker) => {
@@ -114,6 +123,7 @@ export class Game {
     else this.stepper.advance(0, 0);
     this.sim.applyCommand({ type: 'set-speed', speed });
     this.publish();
+    this.onChange?.('speed');
   }
 
   setTool(tool: Tool | null): void {
@@ -141,6 +151,7 @@ export class Game {
     if (!tool) return;
     const last = tiles[tiles.length - 1];
     if (typeof tool === 'object' && (!click || tiles.length !== 1)) { this.updateGhost(); return; }
+    const doomed = tool === 'demolish' ? this.demolitionTargets(tiles) : null;
     const command = tool === 'road' ? { type: 'place-roads' as const, tiles }
       : tool === 'demolish' ? { type: 'demolish' as const, tiles }
         : { type: 'place-building' as const, defId: tool.build, x: last?.x ?? 0, y: last?.y ?? 0 };
@@ -148,10 +159,17 @@ export class Game {
     if (result.ok) {
       this.renderer.refreshTiles(this.sim.getWorld(), result.changedTiles);
       this.renderer.refreshBuildings(this.sim.getWorld(), this.sim.getBuildings(), result.changedTiles);
+      if (command.type === 'place-building') this.renderer.animateBuildingIn(result.changedBuildings[0]!);
+      if (doomed) {
+        for (const building of doomed.buildings) this.renderer.dust(building.tiles, building.size);
+        this.renderer.dust(doomed.roads, 0.6);
+      }
       if (this.selectedBuilding.get() && result.changedBuildings.includes(this.selectedBuilding.get()?.id ?? -1)) {
         this.selectedBuilding.set(this.sim.getBuilding(this.selectedBuilding.get()?.id ?? -1) ?? null);
       }
-    }
+      this.refreshHoverInfo();
+      this.onChange?.('command');
+    } else if (result.reason) this.toasts.push('error', result.reason);
     this.publish();
     this.updateGhost();
   }
@@ -167,6 +185,16 @@ export class Game {
     this.renderer.setHoveredTile(tile);
     this.hoveredTile = tile;
     this.updateGhost();
+    this.refreshHoverInfo();
+  }
+
+  /**
+   * Rebuilds the hover chip for the tile under the pointer from the current city. Called
+   * on pointer moves and after every successful command, so a demolished building's name
+   * (or a tree cleared by a road) disappears without moving the mouse.
+   */
+  private refreshHoverInfo(): void {
+    const tile = this.hoveredTile;
     if (!tile) {
       this.hover.set(null);
       return;
@@ -191,6 +219,27 @@ export class Game {
     this.renderer.updatePlacement(definition, this.hoveredTile, preview, access?.hints);
   }
 
+  /** What a demolish stroke will remove (for the dust effect): building footprints and road tiles. */
+  private demolitionTargets(tiles: readonly TileCoord[]): { buildings: { tiles: TileCoord[]; size: number }[]; roads: TileCoord[] } {
+    const world = this.sim.getWorld();
+    const seen = new Set<number>();
+    const buildings: { tiles: TileCoord[]; size: number }[] = [];
+    const roads: TileCoord[] = [];
+    for (const tile of tiles) {
+      const building = this.sim.getBuildingAt(tile.x, tile.y);
+      if (building && !seen.has(building.id)) {
+        seen.add(building.id);
+        const size = buildingDefinition(building.defId)?.size ?? 1;
+        const centre = { x: building.x + Math.floor((size - 1) / 2), y: building.y + Math.floor((size - 1) / 2) };
+        buildings.push({ tiles: [centre], size });
+      } else if (!building && inBounds(tile.x, tile.y, world.width, world.height)) {
+        const index = toIndex(tile.x, tile.y, world.width);
+        if (world.roads[index] === 1 && index !== world.entranceIndex) roads.push(tile);
+      }
+    }
+    return { buildings, roads };
+  }
+
   /** Remembers the saved speed for Space-to-resume, then pauses. */
   private pauseForLoad(): void {
     const saved = this.current.getSpeed();
@@ -200,7 +249,11 @@ export class Game {
 
   /** Call after the simulation changes so the UI re-reads it. */
   publish(): void {
-    this.snapshot.set(this.sim.snapshot());
+    const snapshot = this.sim.snapshot();
+    this.snapshot.set(snapshot);
+    const inDebt = snapshot.economy.immigrationPaused;
+    if (inDebt && !this.wasInDebt) this.toasts.push('warning', 'Funds empty — immigration paused');
+    this.wasInDebt = inDebt;
   }
 
   destroy(): void { this.detachTools?.(); this.renderer.destroy(); }

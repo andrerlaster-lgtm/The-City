@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { IndexedDbSaveProvider, STORAGE_TIMEOUT_MS } from '../../src/save/providers/indexedDb';
-import { AUTOSAVE_EVERY_DAYS, isAutosaveTick, SaveService, startupSimulation } from '../../src/app/saveService';
+import { AUTOSAVE_AFTER_CHANGE_MS, AUTOSAVE_EVERY_DAYS, isAutosaveTick, SaveService, startupSimulation } from '../../src/app/saveService';
 import { MemorySaveProvider } from '../../src/save/providers/memory';
 import { SaveSlots } from '../../src/save/slots';
 import { Simulation } from '../../src/sim/Simulation';
@@ -139,6 +139,26 @@ describe('save slots and service', () => {
       await expect(hanging.write('autosave', {} as never)).rejects.toThrow("Saving isn't available");
     } finally {
       vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
+  });
+
+  it('autosaves shortly after player changes (debounced), so the autosave tracks the city being played', async () => {
+    vi.useFakeTimers();
+    try {
+      const { host, service, provider } = setup();
+      service.requestAutosave();
+      runDays(host.sim, 1);
+      service.requestAutosave();
+      await vi.advanceTimersByTimeAsync(AUTOSAVE_AFTER_CHANGE_MS - 1);
+      expect(provider.data.has('autosave')).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect((provider.data.get('autosave') as { state: { tick: number } }).state.tick).toBe(host.sim.getTick());
+      runDays(host.sim, 1);
+      service.requestAutosave(0);
+      await vi.advanceTimersByTimeAsync(0);
+      expect((provider.data.get('autosave') as { state: { tick: number } }).state.tick).toBe(host.sim.getTick());
+    } finally {
       vi.useRealTimers();
     }
   });

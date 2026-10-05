@@ -13,7 +13,7 @@ export class HoverLayer {
   private target: { x: number; y: number } | null = null;
   private visible = 0;
 
-  constructor(private readonly reduceMotion: boolean) {
+  constructor(public reduceMotion: boolean) {
     const w = TILE_WIDTH;
     const h = TILE_HEIGHT;
     this.marker

@@ -1,0 +1,60 @@
+/* Panel entrances, toasts and the one reduced-motion rule for the whole HUD. */
+@keyframes panel-in {
+  from { opacity: 0; translate: 0 6px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+/* `translate` composes with each panel's own `transform` (e.g. centring), so no conflict. */
+.economy-panel, .citizens-panel, .save-menu, .info-panel, .build-menu, .toast {
+  animation: panel-in 200ms var(--ease-out) both;
+}
+
+.toasts {
+  position: absolute;
+  bottom: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: grid;
+  gap: 6px;
+  width: min(460px, calc(100vw - 16px));
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px 8px 14px;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+.toast--success { border-left-color: #83d79b; }
+.toast--info { border-left-color: var(--accent); }
+.toast--warning { border-left-color: #ffc36e; }
+.toast--error { border-left-color: #ff8a6b; color: #ffdb9c; }
+.toast button {
+  padding: 0 6px;
+  color: var(--text-muted);
+  font: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+/* One rule turns every HUD animation and transition off for players who ask for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

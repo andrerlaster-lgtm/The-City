@@ -33,6 +33,9 @@ export class ObjectLayer {
     this.applyBuildings(buildings);
   }
 
+  /** The live sprite of a placed building (for effects), if it exists. */
+  buildingSprite(id: number): Sprite | undefined { return this.buildings.get(id); }
+
   applyBuildings(buildings: readonly BuildingInstance[]): void {
     for (const child of [...this.container.children]) if (child.label.startsWith('building-outline-')) child.destroy();
     for (const sprite of this.buildings.values()) { this.container.removeChild(sprite); sprite.destroy(); }

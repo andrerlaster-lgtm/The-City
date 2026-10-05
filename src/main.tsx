@@ -10,6 +10,7 @@ import './ui/styles/hud.css';
 import './ui/styles/economy.css';
 import './ui/styles/citizens.css';
 import './ui/styles/save.css';
+import './ui/styles/motion.css';
 
 const canvasHost = document.getElementById('canvas-host');
 const uiRoot = document.getElementById('ui-root');
@@ -23,8 +24,15 @@ async function boot(canvasHost: HTMLElement, uiRoot: HTMLElement): Promise<void>
   await game.start(canvasHost);
   const saves = new SaveService(game, slots);
   game.onTick = (tick) => saves.onTick(tick);
+  // Pausing saves at once; builds and demolitions save after a short quiet period.
+  game.onChange = (kind) => saves.requestAutosave(kind === 'speed' && game.sim.getSpeed() === 0 ? 0 : undefined);
   saves.attachVisibility(document);
-  if (startup.note) saves.status.set(startup.note);
+  if (startup.note) game.toasts.push(startup.note.kind === 'error' ? 'error' : 'info', startup.note.text);
+  // Save results also go to the shared toast stack (the menu keeps showing the latest one).
+  saves.status.subscribe(() => {
+    const status = saves.status.get();
+    if (status) game.toasts.push(status.kind === 'error' ? 'error' : 'success', status.text);
+  });
   void saves.refresh();
   createRoot(uiRoot).render(
     <StrictMode>

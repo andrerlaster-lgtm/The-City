@@ -84,23 +84,6 @@
 }
 .save-menu__confirm button { margin-right: 6px; }
 
-.save-toast {
-  position: absolute;
-  bottom: 56px;
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: min(520px, calc(100vw - 16px));
-  padding: 8px 14px;
-  font-size: 12px;
-  color: var(--text);
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--panel-shadow);
-  pointer-events: none;
-}
-.save-toast--error { color: #ffdb9c; border-color: #a87432; }
-
 @media (max-width: 720px) {
   .save-menu { top: 150px; max-height: calc(100vh - 160px); }
 }

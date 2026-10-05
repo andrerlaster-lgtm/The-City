@@ -13,6 +13,7 @@ import { buildBuildingTextures } from './art/buildingArt';
 import { createCamera, mapExtent, setToolDrag, worldOffset } from './camera';
 import { HoverLayer } from './layers/HoverLayer';
 import { ObjectLayer } from './layers/ObjectLayer';
+import { EffectsLayer } from './layers/EffectsLayer';
 import { MarkerLayer } from './layers/MarkerLayer';
 import { RoadLayer } from './layers/RoadLayer';
 import { TerrainLayer } from './layers/TerrainLayer';
@@ -37,6 +38,8 @@ export class Renderer {
   private buildingTextures = new Map<string, import('./art/buildingArt').BuildingTexture>();
   private ghost: PlacementGhost | null = null;
   private markers: MarkerLayer | null = null;
+  private readonly effects = new EffectsLayer();
+  private reduceMotion = false;
 
   async init(host: HTMLElement): Promise<void> {
     await this.app.init({
@@ -52,7 +55,6 @@ export class Renderer {
   /** Builds the map layers and camera for a world. */
   showWorld(world: Readonly<WorldMap>): Viewport {
     const renderer = this.app.renderer;
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const extent = mapExtent(world.width, world.height);
     this.camera = createCamera(this.app, extent);
@@ -62,7 +64,7 @@ export class Renderer {
     this.buildingTextures = buildBuildingTextures(renderer, BUILDINGS);
     this.objects = new ObjectLayer(buildTreeTextures(renderer), this.buildingTextures);
     this.roads = new RoadLayer();
-    this.hover = new HoverLayer(reduceMotion);
+    this.hover = new HoverLayer(this.reduceMotion);
     this.ghost = new PlacementGhost();
     this.markers = new MarkerLayer(this.buildingTextures);
 
@@ -70,13 +72,14 @@ export class Renderer {
     this.objects.build(world);
     this.roads.build(world);
     this.markers.setEntrance(world);
-    this.world.addChild(this.terrain.container, this.roads.container, this.objects.container, this.hover.container, this.ghost.container, this.markers.container);
+    this.world.addChild(this.terrain.container, this.roads.container, this.objects.container, this.effects.container, this.hover.container, this.ghost.container, this.markers.container);
     this.camera.addChild(this.world);
     this.app.stage.addChild(this.camera);
     this.centreOnEntrance(world);
 
     const hover = this.hover;
-    this.app.ticker.add((t) => hover.update(t));
+    const effects = this.effects;
+    this.app.ticker.add((t) => { hover.update(t); effects.update(t.deltaMS); });
     return this.camera;
   }
 
@@ -126,6 +129,22 @@ export class Renderer {
   updatePlacement(definition: BuildingDefinition | null, cursor: TileCoord | null, preview: BuildingPreview | null, hints: readonly EdgeHint[] = []): void {
     this.ghost?.update(definition, definition ? this.buildingTextures.get(definition.art) : undefined, cursor, preview, hints);
   }
+
+  /** Follows the player's reduced-motion preference: no pop-in, no dust, no hover easing. */
+  setReducedMotion(reduced: boolean): void {
+    this.reduceMotion = reduced;
+    this.effects.reduceMotion = reduced;
+    if (this.hover) this.hover.reduceMotion = reduced;
+  }
+
+  /** Pop-in for a building that was just placed (call after refreshBuildings). */
+  animateBuildingIn(id: number): void {
+    const sprite = this.objects?.buildingSprite(id);
+    if (sprite) this.effects.popIn(sprite);
+  }
+
+  /** Dust over demolished tiles; `size` is larger for bigger buildings. */
+  dust(tiles: readonly TileCoord[], size = 1): void { this.effects.dust(tiles, size); }
 
   setToolActive(active: boolean): void {
     if (this.camera) setToolDrag(this.camera, active);

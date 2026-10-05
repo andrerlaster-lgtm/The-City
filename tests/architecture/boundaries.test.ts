@@ -78,6 +78,14 @@ describe('save-layer purity', () => {
   }
 });
 
+describe('test tooling stays out of the game', () => {
+  for (const [rel, source] of Object.entries(SOURCES)) {
+    it(`${rel} does not import Playwright`, () => {
+      expect(importsOf(source).some((spec) => spec.startsWith('@playwright/') || spec === 'playwright')).toBe(false);
+    });
+  }
+});
+
 describe('file size', () => {
   for (const [rel, source] of Object.entries(SOURCES)) {
     it(`${rel} is at most ${MAX_LINES} lines`, () => {

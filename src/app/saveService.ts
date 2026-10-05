@@ -10,6 +10,8 @@ import { Simulation } from '../sim/Simulation';
 import { Store } from './store';
 
 export const AUTOSAVE_EVERY_DAYS = 5;
+/** Quiet time after a player change (build, demolish) before the autosave is written. */
+export const AUTOSAVE_AFTER_CHANGE_MS = 1000;
 
 /** What the save service needs from the running game. */
 export interface GameHost {
@@ -52,6 +54,7 @@ export class SaveService {
   readonly status = new Store<SaveStatus | null>(null);
   readonly available = new Store<boolean | null>(null);
   private lastAutosaveTick = -1;
+  private pendingAutosave: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private readonly host: GameHost,
@@ -115,6 +118,20 @@ export class SaveService {
     const result = await this.saves.save('autosave', this.host.sim.exportState(), this.now());
     if (!result.ok) this.report({ kind: 'error', text: `Autosave failed: ${result.reason}` });
     return result.ok;
+  }
+
+  /**
+   * Autosaves soon after the player changes the city, so the autosave tracks the city
+   * being played. The tab-hidden autosave alone isn't enough: a write started while
+   * the page unloads is often lost (found by the M7 Playwright reload test).
+   * `delayMs` 0 writes at once (used when pausing); otherwise changes are debounced.
+   */
+  requestAutosave(delayMs = AUTOSAVE_AFTER_CHANGE_MS): void {
+    if (this.pendingAutosave !== null) clearTimeout(this.pendingAutosave);
+    this.pendingAutosave = setTimeout(() => {
+      this.pendingAutosave = null;
+      void this.autosave();
+    }, delayMs);
   }
 
   /** Call after every simulation tick; autosaves every AUTOSAVE_EVERY_DAYS game days. */

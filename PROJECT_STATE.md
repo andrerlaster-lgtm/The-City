@@ -11,7 +11,7 @@ in → expand → population grows. Full plan and acceptance criteria:
 `docs/STAGE-1-PLAN.md`.
 
 ## Current Stage
-Stage 1, milestones M0–M5 committed and pushed. Andre's M6 play-test covered the core M5 behaviour: production, disconnecting and reconnecting. The M5 road-connection hints haven't been explicitly play-tested. **M6 — Save and load is done, committed and pushed. M7 (Polish and deploy) is planned (`docs/M7-PLAN.md`, tooling approved), and hasn't been started.**
+Stage 1, milestones M0–M5 committed and pushed. Andre's M6 play-test covered the core M5 behaviour: production, disconnecting and reconnecting. The M5 road-connection hints haven't been explicitly play-tested. **M6 is done and pushed. M7 (Polish and deploy) is done: Andre's play-test passed, it's committed (not pushed yet), and the private Vercel preview passes all 10 Playwright tests. All Stage 1 milestones (M0–M7) are complete.**
 
 | # | Milestone | Status |
 |---|---|---|
@@ -22,10 +22,18 @@ Stage 1, milestones M0–M5 committed and pushed. Andre's M6 play-test covered t
 | M4 | Time and economy | Done |
 | M5 | Citizens (first full gameplay loop) | Done (`e990771`); core behaviour verified in the M6 play-test; hints not explicitly play-tested |
 | M6 | Save and load | Done |
-| M7 | Polish and deploy (private Vercel preview) | Planned (tooling approved); not started |
+| M7 | Polish and deploy (private Vercel preview) | Done (play-tested, committed; push pending) |
 
 ## Last Completed Step
-2026-10-04: M6 — Save and load implemented by Claude from `docs/M6-PLAN.md`
+2026-10-04: M7 — Polish and deploy, implemented by Claude (see "M7
+Implementation"). It includes:
+- the hover-chip fix
+- the private Vercel preview, with the production incident fixed and the
+  accidental production deployment removed
+
+Andre's play-test passed. Committed, not pushed.
+
+Before that: 2026-10-04: M6 — Save and load implemented by Claude from `docs/M6-PLAN.md`
 (see "M6 Implementation"), plus per-building food and revenue output. Andre's
 browser play-test passed on 2026-10-04. It covered:
 - save and load
@@ -54,8 +62,9 @@ Committed and pushed as `e990771` at Andre's request. Andre hasn't
 confirmed a browser play-test of M5 yet.
 
 ## Current Task
-M7 is planned in `docs/M7-PLAN.md` (committed and pushed), and its tooling is
-approved. Implementation hasn't started.
+None in progress. M7 is committed (not pushed yet). Stage 1 is complete. Push
+when Andre asks, then review Stage 1 against the acceptance criteria before
+Stage 2.
 
 ## Important Decisions
 - VS Code is the main development command center.
@@ -217,7 +226,7 @@ Scripts: `npm run dev`, `npm test`, `npm run typecheck`, `npm run build`.
   new game (confirmations inside the panel), the world seed shown with a
   Copy button, and continuing from the autosave on startup. Loaded games
   start paused.
-- Tests: 284 passing across data, footprint/placement/access/demolition,
+- Tests: 378 unit tests plus 10 Playwright browser tests passing, across data, footprint/placement/access/demolition,
   determinism, roads, world generation, camera math, sim-purity and file-size
   guards.
 
@@ -257,16 +266,25 @@ Scripts: `npm run dev`, `npm test`, `npm run typecheck`, `npm run build`.
     gameplay and needs Andre's decision.
   - Codex's earlier 3.28 / 5.79 ms figures came from a cold 3-sample run. The
     same scenario swings between about 3.6 and 11 ms run to run.
-- The top-bar Food stat wraps onto two lines ("30 / (+0/day)"). This is
-  cosmetic.
 - M5 behaviour (production, disconnected output dropping to 0, reconnecting)
   was verified in Andre's M6 play-test. The road-connection hints haven't
   been explicitly play-tested. Any fixes go in a follow-up commit.
 - M3 browser play-test passed (Andre, 2026-10-04, after the rendering fix):
   road/ghost/building alignment, placement reasons, all five buildings, depth,
   info panel connected/disconnected, and demolish with no refund.
-- The Vite build warns that the main JS chunk is over 500 kB. This doesn't
-  block anything and can be optimized later.
+- The bundle warning is fixed (M7): React is split into a vendor chunk.
+  Main is 413 kB (120 kB gzipped) and React is 219 kB (68 kB gzipped).
+- Fixed (M7): the hover chip now updates right after every successful
+  command. Before, a demolished building's name stayed until the mouse moved.
+  `Game.refreshHoverInfo`, UI state only, is covered by a Playwright test
+  that fails without the fix.
+- Under very heavy machine load (load average about 20–30, mostly from other
+  apps), the timing-sensitive tests can fail once and pass on a rerun:
+  - the M5 performance test
+  - the Playwright environment probe's 3 s IndexedDB timeout
+  - the real-time Playwright clock and starter-town tests, which hit their
+    2-minute timeouts once during the final M7 check
+  Each passed on a rerun once the load eased.
 - M2 browser play-test passed (Andre, 2026-10-04): drag, disconnected tint,
   tree removal, tool vs. camera drag and previews all work in the live preview.
 - On touch screens, one-finger drag with a drag tool may still pan the camera;
@@ -286,14 +304,46 @@ Repository: https://github.com/andrerlaster-lgtm/The-City
 
 Branch: `main`
 
-Working tree: clean. M6 (`931eb12`) and the M7 plan are pushed, and local
-`main` matches `origin/main`.
+Working tree: clean after the M7 commit. `main` is 1 commit ahead of
+`origin/main`, because the M7 commit isn't pushed yet.
 
 ## Vercel
 
-Project: Not created yet.
-
-Deployment URL: None yet.
+- **Project:** `the-city`, in `andrerlaster-lgtms-projects`, id
+  `prj_P7mAPw72IJWhOsuGMwC2Ry2h3sjx`. Created 2026-10-04 with
+  `vercel project add`.
+  - Linked locally; `.vercel/` is gitignored.
+  - **No Git repository connected**, confirmed with `vercel git disconnect`,
+    so pushes never deploy.
+- **Build settings** are pinned in `vercel.json`: Vite, `npm ci`,
+  `npm run build`, output `dist`. Node 24.x. `.vercelignore` excludes local
+  folders.
+- **Private preview:**
+  `https://the-city-p3dj2g5ib-andrerlaster-lgtms-projects.vercel.app`
+  - Deployment `the-city-p3dj2g5ib`, target `preview`, no aliases.
+  - Deployment Protection (Vercel login) is on: anyone who isn't logged in
+    is redirected to the Vercel login page.
+- **Playwright against the preview:** 10 of 10 passed. Command:
+  `vercel env run -- sh -c 'PLAYWRIGHT_BASE_URL=<url> npm run test:e2e:preview'`.
+  - It authenticates with the short-lived development OIDC token
+    (`x-vercel-trusted-oidc-idp-token`), attached only to the preview's
+    origin by `tests/e2e/fixtures.ts`.
+  - Remote runs record no traces. No bypass secret, `.env.local` or
+    protection change was needed.
+- **Incident (2026-10-04):** the first deploy went to **production** despite
+  `--target=preview` (this was the Stage 1 plan's known caveat).
+  - It got a **public** alias, `the-city-gray.vercel.app` (HTTP 200).
+  - With Andre's approval, the alias was removed (`vercel alias rm`) and now
+    returns 404. Then the real preview was deployed.
+  - At Andre's request, that production deployment
+    (`dpl_2YArgu1ASaTmMsgUgR5qoQmVgJHw`) was then **removed** with
+    `vercel remove`. Its URLs, `the-city-2j92x23s7-…`,
+    `the-city-andrerlaster-lgtms-projects…` and `the-city-gray…`, all return
+    404.
+  - **The project has no production deployment now.** The next deploy could
+    again be assigned to production. Before any future deploy, check the
+    target and stop if it says production.
+- **No production deploy is intended** until Andre asks.
 
 ## M2 Completion (2026-10-04)
 
@@ -500,24 +550,135 @@ Validation: 125 tests passed. `npm run typecheck`, `npm run build` and
   the city totals.
 - Play-tested and committed with M6.
 
+## M7 Implementation (2026-10-04, Claude)
+
+### Tooling
+- `@playwright/test` 1.63.0, an exact-version dev dependency. Installed with
+  no browser download. It uses the local Chrome (`channel: 'chrome'`).
+  - `npm audit` reports 0 vulnerabilities.
+  - `@types/node` wasn't added: `playwright.config.ts` declares `process`
+    itself.
+  - A guard test fails if anything in `src/` imports Playwright.
+- No visualizer, `pixi-filters` or AssetPack.
+
+### Playwright (`tests/e2e`; `npm run test:e2e`; `test:e2e:preview` with `PLAYWRIGHT_BASE_URL`)
+- Tests run against the production build (`vite preview` on port 4173),
+  with 2 workers. More than 2 overloads the machine with WebGL.
+- **10 tests:**
+  1. the environment works (WebGL, IndexedDB, timers)
+  2. the game boots with no console errors
+  3. the clock and pause work
+  4. a starter town gets built through the real UI: road cost, citizens,
+     Farm output
+  5. save, reload, continue paused with the same seed
+  6. a new game with a typed seed
+  7. at 400 px wide, nothing wraps or overflows
+  8. reduced motion turns off animations
+  9. an error toast closes on its own
+  10. the hover chip drops a demolished building without the mouse moving
+- **How tests drive the game:** they steer the mouse using the TileInfo chip,
+  and plan valid placements with the pure simulation. The shipped game gets
+  no test hooks.
+
+### Bug found by Playwright and fixed
+- Reloading the page brought back an older or wrong city. The autosave
+  started when the tab hides doesn't finish before the page unloads.
+- **Fix (`SaveService.requestAutosave`):**
+  - Pausing autosaves at once.
+  - Building and demolishing autosave about 1 s after the last action.
+  - The 5-day, tab-hidden and before-load/new-game autosaves are unchanged.
+
+### Visual polish (render, UI and app only)
+- **Building pop-in:** scale 0.6 → 1 with an ease-out-back, plus a fade-in,
+  over 280 ms.
+- **Demolish dust puff:** pooled soil-coloured particles, 450 ms
+  (`render/layers/EffectsLayer.ts`, `render/anim.ts`).
+- **Panel and toast entrance:** `motion.css` `panel-in`, 200 ms.
+- **Top-bar number tweening:** `useTweenedNumber`, 400 ms, always ending on
+  the exact value.
+- **Reduced motion:** one preference source (`app/motion.ts`) drives the
+  renderer and the hooks, and one CSS block replaces the old per-component
+  rules.
+- **Unified toasts** (`app/toasts.ts`, `ui/Toasts.tsx`):
+  - at most 3 at once
+  - close after 4 s, or 6 s for errors
+  - repeated messages within 1 s merge
+  - accessible live region
+  - sources: save/load results, failed actions with their reason, and going
+    into debt
+  - the old ad-hoc save toast is removed
+- **Food stat fix:** the daily change sits in a `<small>`, and stat values
+  don't wrap.
+
+### Balance pass
+- `tests/sim/balance.test.ts` runs scripted 60-day towns against the plan's
+  targets. All targets are already met, so **no `BALANCE` values were
+  changed**.
+- Results:
+  - **Starter town:** net positive by day 3–5, about +37/day, population
+    flat at 12.
+  - **Houses only:** −6/day.
+  - **One Farm:** feeds exactly 12 people.
+  - **A town that outgrows its farms:** shows a food deficit and loses a few
+    people (between 25 and 30), without collapsing.
+
+### Bundle
+- React is split into its own vendor chunk with Rolldown's
+  `codeSplitting.groups`.
+
+  | Chunk | Before | After |
+  |---|---|---|
+  | App + Pixi | 627 kB (187 kB gzipped) | 413 kB (120 kB gzipped) |
+  | React | inside the main chunk | 219 kB (68 kB gzipped) |
+
+- The 500 kB warning is gone.
+- Pixi stays with the app on purpose: grouping it pulled in the renderer
+  pieces Pixi otherwise loads lazily (598 kB).
+
+### Vercel
+See the Vercel section above: project setup, the private preview, the
+production incident on the first deploy and how it was fixed, and Playwright
+passing 10 of 10 against the preview.
+
+## Stage 1 Status (2026-10-04)
+
+All milestones M0–M7 are done and play-tested.
+
+### Against the Stage 1 acceptance criteria
+- **World, roads, buildings, citizens, economy and time, save:** met, and
+  covered by unit tests, scenario tests and Playwright.
+- **Quality:**
+  - `src/sim` is pure (guard tests).
+  - Every building definition is validated.
+  - Scenes can be set up headlessly.
+  - Job matching uses road distance, the same way every run.
+  - A hidden tab never runs a burst of ticks.
+  - No file is over 400 lines.
+  - 378 unit tests plus 10 Playwright tests.
+- **Private Vercel preview:** deployed. The first deploy's production alias
+  was removed, then the preview deployed, as the plan anticipated. Later the
+  accidental production deployment was removed entirely.
+- **Not fully verified:** "60 fps with a full map and 2,000 citizens". The
+  simulation day is measured (about 1.9 ms normally, about 6.4 ms in the
+  rare mass-unemployment worst case), but frame rate with 2,000 citizens
+  hasn't been measured in a browser.
+
+### Open items carried forward
+- The per-day job-matching limit, only if the worst-case hitch is noticeable.
+- One-finger touch drag with a drag tool may still pan the camera.
+- Two tabs autosaving at once: the last write wins.
+- Only maps of the same size can be loaded.
+- The project has no production deployment, so the next deploy may be
+  assigned to production. Check the target before every deploy.
+
 ## Next Step
 
-1. Andre confirms the balance targets in `docs/M7-PLAN.md`.
-2. Implement M7 in the plan's order:
-   1. Install Playwright and prove it can run the game on this Mac.
-   2. The smoke suite.
-   3. Bundle split.
-   4. Reduced-motion support.
-   5. Pop-in, dust, transitions, number tweening and the Food stat fix.
-   6. Toasts.
-   7. Balance pass.
-   8. Private Vercel preview, plus Playwright against it.
-3. Still open:
-   - quick play-test of the M5 road-connection hints
-   - the per-day job-matching limit, only if the hitch is noticeable
+1. Push M7 when Andre asks.
+2. Review Stage 1 (optionally measure frame rate with 2,000 citizens), then
+   plan Stage 2.
 
 ## Last Updated
 
 Date: 2026-10-04
-AI used: Claude (M7 plan; M6 plan and implementation; M5 plan, review and fix pass); Codex (M5 implementation; M4
+AI used: Claude (M7 plan and implementation; M6 plan and implementation; M5 plan, review and fix pass); Codex (M5 implementation; M4
 implementation); Claude (M4 plan, review and fix pass)
