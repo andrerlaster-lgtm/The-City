@@ -11,7 +11,7 @@ in → expand → population grows. Full plan and acceptance criteria:
 `docs/STAGE-1-PLAN.md`.
 
 ## Current Stage
-Stage 1, milestones M0–M5 committed and pushed. Andre's M6 play-test covered the core M5 behaviour: production, disconnecting and reconnecting. The M5 road-connection hints haven't been explicitly play-tested. **M6 is done and pushed. M7 (Polish and deploy) is done: Andre's play-test passed, it's committed and pushed (`e1fc012`), and the private Vercel preview passes all 10 Playwright tests. All Stage 1 milestones (M0–M7) are complete.**
+Stage 1, milestones M0–M5 committed and pushed. Andre's M6 play-test covered the core M5 behaviour: production, disconnecting and reconnecting. The M5 road-connection hints haven't been explicitly play-tested. **M6 is done and pushed. M7 (Polish and deploy) is done: Andre's play-test passed, it's committed and pushed (`e1fc012`), and the private Vercel preview passes all 10 Playwright tests. All Stage 1 milestones (M0–M7) are complete. Stage 2 is planned (`docs/STAGE-2-PLAN.md`); S2-M1 Foundations is next and not started.**
 
 | # | Milestone | Status |
 |---|---|---|
@@ -62,10 +62,12 @@ Committed and pushed as `e990771` at Andre's request. Andre hasn't
 confirmed a browser play-test of M5 yet.
 
 ## Current Task
-Stage 1 is complete. The Vercel Git integration was switched from the stray
-`sim-game` repo to The-City, with production branch `production`, and is being
-verified with an automatic preview from `main`. Next, review Stage 1 against
-the acceptance criteria before Stage 2.
+Stage 2 planning is done (2026-10-04).
+- The feature bank is saved as `docs/STAGE-2-FEATURE-BANK.md` (the source
+  of truth).
+- The reconciled roadmap is in `docs/STAGE-2-PLAN.md`.
+- The first milestone is detailed in `docs/S2-M1-PLAN.md`.
+- Nothing from Stage 2 is implemented yet.
 
 ## Important Decisions
 - VS Code is the main development command center.
@@ -74,6 +76,20 @@ the acceptance criteria before Stage 2.
 - Stage 1 plan approved 2026-10-04 (stack, isometric 2.5D view, art generated
   in code, building names Cottage / Rowhouse / Farm / Workshop / Well).
 - No new dependencies without Andre's approval.
+- Stage 2 (approved 2026-10-04; details in `docs/STAGE-2-PLAN.md` §2):
+  1. The feature bank is the source of truth.
+  2. Milestone order M1 → M8. Land value comes before dense housing.
+  3. Unhappiness departures: below 25 for 10 consecutive days. The counter
+     resets at 25 or higher. Values live in `BALANCE`.
+  4. Town Hall tax setting: Low, Normal or High only, with values in
+     `BALANCE`. No wider policy system.
+  5. The building table is the starting point, tuned per milestone.
+  6. Job matching: cache first. Add a per-day cap only if the benchmark still
+     misses 5 ms.
+  7. Traffic: aggregate counts plus a small land-value penalty only.
+  8. Desktop/laptop first. Touch stays in the backlog, and isolated touch
+     bugs get fixed only if they interfere with normal browser use.
+  9. No `fast-check` for now.
 - M7 tooling (approved 2026-10-04):
   - **Install `@playwright/test`** as a dev dependency only. It uses the
     local Chrome channel, never enters the production bundle, and is for
@@ -687,48 +703,21 @@ passing 10 of 10 against the preview.
 
 ## Next Step
 
-1. Andre reviews `docs/STAGE-1-COMPLETION.md` and decides which
-   carried-forward items go into Stage 2.
-2. **Safety items (2026-10-04):**
-   - **Done:** `sim-game` is archived. It stays public, read-only, and
-     unused by Vercel.
-   - **Done:** the automation-bypass secret is revoked through Vercel's
-     documented API (`regenerate: false`), leaving 0 entries. Playwright
-     still reaches the preview with OIDC (verified after the revoke).
-   - **Release model (Andre, 2026-10-04):**
-     - `main` → automatic protected Preview.
-     - `production` → a deliberate public Production release.
-     - **No Vercel-side guard**, by Andre's decision.
-   - **Done:** GitHub protection for `production`.
-     - Andre made The-City **public**. A history scan before applying
-       protection found no secrets, tokens or `.env` files ever committed.
-     - Protection on `production`:
-       - a pull request is required (0 approvals, since solo authors can't
-         approve their own PR)
-       - **enforced for admins**
-       - force pushes and deletion blocked
-     - `main` is unprotected, so pushes still build previews.
-     - Verified through the GitHub API (`protected: true`). It wasn't tested
-       with a real push, since a push that got through would deploy
-       publicly.
-     - **To release:** open a PR from `main` → `production` and merge it. The
-       merge creates the public production deployment. Only do this when
-       Andre asks.
-     - With the repo public, Vercel's Git fork protection is on, so PRs from
-       forks need authorization before they build.
-   - **Final check (2026-10-04):**
-     - 0 production deployments (3 previews, all Ready).
-     - `production` is untouched at `e1fc012`; there's no
-       `the-city-git-production` deployment (404).
-     - `main` is at `a4783e1`, and its latest preview
-       (`the-city-8r8vbbf0q`) is protected (302 to the Vercel login).
-     - Vercel's production branch is `production`, and there are 0 bypass
-       entries.
-3. Plan Stage 2. Don't start until Andre asks. Never push to `production`
-   without an explicit request.
+1. Implement **S2-M1 Foundations** from `docs/S2-M1-PLAN.md`, by Codex or
+   Claude:
+   - generic coverage, with the Well as the first `water` service
+   - overlay framework with Water and Road connectivity overlays
+   - zoom-to-Entrance
+   - job-matching caching (cap only if needed)
+   - day-boundary frame fix
+   - `@perf` spec and test hardening
+   - the `STAGE-1-PLAN.md` folder name fix
+2. Then review, Andre's play-test, a protected preview plus Playwright, and a
+   commit.
+3. `production` is never touched without an explicit release request.
 
 ## Last Updated
 
 Date: 2026-10-04
-AI used: Claude (Stage 1 completion audit; M7 plan and implementation; M6 plan and implementation; M5 plan, review and fix pass); Codex (M5 implementation; M4
+AI used: Claude (Stage 2 plan; Stage 1 completion audit; M7 plan and implementation; M6 plan and implementation; M5 plan, review and fix pass); Codex (M5 implementation; M4
 implementation); Claude (M4 plan, review and fix pass)
