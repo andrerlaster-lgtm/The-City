@@ -11,7 +11,7 @@ in → expand → population grows. Full plan and acceptance criteria:
 `docs/STAGE-1-PLAN.md`.
 
 ## Current Stage
-Stage 1, milestones M0–M5 committed and pushed. Andre's M6 play-test covered the core M5 behaviour: production, disconnecting and reconnecting. The M5 road-connection hints haven't been explicitly play-tested. **M6 — Save and load is done: Andre's browser play-test passed and it's committed (not pushed yet). M7 (Polish and deploy) is next, and hasn't been started.**
+Stage 1, milestones M0–M5 committed and pushed. Andre's M6 play-test covered the core M5 behaviour: production, disconnecting and reconnecting. The M5 road-connection hints haven't been explicitly play-tested. **M6 — Save and load is done, committed and pushed. M7 (Polish and deploy) is planned (`docs/M7-PLAN.md`, tooling approved), and hasn't been started.**
 
 | # | Milestone | Status |
 |---|---|---|
@@ -21,8 +21,8 @@ Stage 1, milestones M0–M5 committed and pushed. Andre's M6 play-test covered t
 | M3 | Buildings | Done |
 | M4 | Time and economy | Done |
 | M5 | Citizens (first full gameplay loop) | Done (`e990771`); core behaviour verified in the M6 play-test; hints not explicitly play-tested |
-| M6 | Save and load | Done (play-tested, committed; push pending) |
-| M7 | Polish and deploy (private Vercel preview) | Not started |
+| M6 | Save and load | Done |
+| M7 | Polish and deploy (private Vercel preview) | Planned (tooling approved); not started |
 
 ## Last Completed Step
 2026-10-04: M6 — Save and load implemented by Claude from `docs/M6-PLAN.md`
@@ -36,7 +36,7 @@ browser play-test passed on 2026-10-04. It covered:
 - reconnecting
 - city totals matching the per-building totals
 
-Claude's final review passed. M6 is committed, not pushed yet.
+Claude's final review passed. M6 is committed (`931eb12`) and pushed.
 
 Before that: M5 — Citizens, implemented from the approved plan. It adds the
 deterministic citizen lifecycle, daily housing and job assignment, food
@@ -54,8 +54,8 @@ Committed and pushed as `e990771` at Andre's request. Andre hasn't
 confirmed a browser play-test of M5 yet.
 
 ## Current Task
-None in progress. M6 is committed. Push it when Andre asks, then plan M7.
-Don't start M7 yet.
+M7 is planned in `docs/M7-PLAN.md` (committed and pushed), and its tooling is
+approved. Implementation hasn't started.
 
 ## Important Decisions
 - VS Code is the main development command center.
@@ -64,6 +64,16 @@ Don't start M7 yet.
 - Stage 1 plan approved 2026-10-04 (stack, isometric 2.5D view, art generated
   in code, building names Cottage / Rowhouse / Farm / Workshop / Well).
 - No new dependencies without Andre's approval.
+- M7 tooling (approved 2026-10-04):
+  - **Install `@playwright/test`** as a dev dependency only. It uses the
+    local Chrome channel, never enters the production bundle, and is for
+    smoke tests and testing the Vercel preview.
+  - **Defer `rollup-plugin-visualizer`.** Use Vite and Rolldown's built-in
+    splitting first.
+  - **Defer `pixi-filters`.** Use built-in Pixi effects.
+  - **Skip AssetPack for Stage 1.**
+  - **Vercel:** use the existing CLI (53.4.0). It's not a project
+    dependency.
 - M3 (approved 2026-10-04): a building needs edge-to-edge road access to be
   placed. Being connected to the entrance is a separate status/warning shown
   in the info panel. Demolishing roads or buildings gives no refund.
@@ -276,9 +286,8 @@ Repository: https://github.com/andrerlaster-lgtm/The-City
 
 Branch: `main`
 
-Working tree: clean after the M6 commit. `main` is 1 commit ahead of
-`origin/main`: the M6 commit isn't pushed. M5 (`e990771`) and the M6 plan
-(`230a139`) are pushed.
+Working tree: clean. M6 (`931eb12`) and the M7 plan are pushed, and local
+`main` matches `origin/main`.
 
 ## Vercel
 
@@ -493,23 +502,22 @@ Validation: 125 tests passed. `npm run typecheck`, `npm run build` and
 
 ## Next Step
 
-1. Push M6 when Andre asks.
-2. Plan **M7 — Polish and deploy**. Don't start until Andre asks. Scope from
-   the Stage 1 plan:
-   - shadows and pop-in animations
-   - UI transitions and number tweening
-   - a balance pass
-   - toasts
-   - the first private Vercel preview
+1. Andre confirms the balance targets in `docs/M7-PLAN.md`.
+2. Implement M7 in the plan's order:
+   1. Install Playwright and prove it can run the game on this Mac.
+   2. The smoke suite.
+   3. Bundle split.
+   4. Reduced-motion support.
+   5. Pop-in, dust, transitions, number tweening and the Food stat fix.
+   6. Toasts.
+   7. Balance pass.
+   8. Private Vercel preview, plus Playwright against it.
 3. Still open:
-   - The M5 road-connection hints haven't been explicitly play-tested on their
-     own. Reconnecting and production were covered by the M6 play-test.
-   - Decide on the per-day job-matching limit, only if the worst-case hitch
-     is noticeable.
-   - The Food stat in the top bar wraps onto two lines (cosmetic).
+   - quick play-test of the M5 road-connection hints
+   - the per-day job-matching limit, only if the hitch is noticeable
 
 ## Last Updated
 
 Date: 2026-10-04
-AI used: Claude (M6 plan and implementation; M5 plan, review and fix pass); Codex (M5 implementation; M4
+AI used: Claude (M7 plan; M6 plan and implementation; M5 plan, review and fix pass); Codex (M5 implementation; M4
 implementation); Claude (M4 plan, review and fix pass)
