@@ -11,7 +11,7 @@ in → expand → population grows. Full plan and acceptance criteria:
 `docs/STAGE-1-PLAN.md`.
 
 ## Current Stage
-Stage 1, milestones M0–M5 committed and pushed. Andre's M6 play-test covered the core M5 behaviour: production, disconnecting and reconnecting. The M5 road-connection hints haven't been explicitly play-tested. **M6 is done and pushed. M7 (Polish and deploy) is done: Andre's play-test passed, it's committed (not pushed yet), and the private Vercel preview passes all 10 Playwright tests. All Stage 1 milestones (M0–M7) are complete.**
+Stage 1, milestones M0–M5 committed and pushed. Andre's M6 play-test covered the core M5 behaviour: production, disconnecting and reconnecting. The M5 road-connection hints haven't been explicitly play-tested. **M6 is done and pushed. M7 (Polish and deploy) is done: Andre's play-test passed, it's committed and pushed (`e1fc012`), and the private Vercel preview passes all 10 Playwright tests. All Stage 1 milestones (M0–M7) are complete.**
 
 | # | Milestone | Status |
 |---|---|---|
@@ -22,7 +22,7 @@ Stage 1, milestones M0–M5 committed and pushed. Andre's M6 play-test covered t
 | M4 | Time and economy | Done |
 | M5 | Citizens (first full gameplay loop) | Done (`e990771`); core behaviour verified in the M6 play-test; hints not explicitly play-tested |
 | M6 | Save and load | Done |
-| M7 | Polish and deploy (private Vercel preview) | Done (play-tested, committed; push pending) |
+| M7 | Polish and deploy (private Vercel preview) | Done |
 
 ## Last Completed Step
 2026-10-04: M7 — Polish and deploy, implemented by Claude (see "M7
@@ -31,7 +31,7 @@ Implementation"). It includes:
 - the private Vercel preview, with the production incident fixed and the
   accidental production deployment removed
 
-Andre's play-test passed. Committed, not pushed.
+Andre's play-test passed. Committed and pushed (`e1fc012`).
 
 Before that: 2026-10-04: M6 — Save and load implemented by Claude from `docs/M6-PLAN.md`
 (see "M6 Implementation"), plus per-building food and revenue output. Andre's
@@ -62,9 +62,10 @@ Committed and pushed as `e990771` at Andre's request. Andre hasn't
 confirmed a browser play-test of M5 yet.
 
 ## Current Task
-None in progress. M7 is committed (not pushed yet). Stage 1 is complete. Push
-when Andre asks, then review Stage 1 against the acceptance criteria before
-Stage 2.
+Stage 1 is complete. The Vercel Git integration was switched from the stray
+`sim-game` repo to The-City, with production branch `production`, and is being
+verified with an automatic preview from `main`. Next, review Stage 1 against
+the acceptance criteria before Stage 2.
 
 ## Important Decisions
 - VS Code is the main development command center.
@@ -304,17 +305,30 @@ Repository: https://github.com/andrerlaster-lgtm/The-City
 
 Branch: `main`
 
-Working tree: clean after the M7 commit. `main` is 1 commit ahead of
-`origin/main`, because the M7 commit isn't pushed yet.
+Working tree: clean. M7 (`e1fc012`) is pushed.
+- Branches on GitHub: `main` and `production`.
+  - `production` was created at `e1fc012` only so Vercel can use it as the
+    production branch. **Never push to it** unless Andre explicitly asks for
+    a production release.
 
 ## Vercel
 
 - **Project:** `the-city`, in `andrerlaster-lgtms-projects`, id
   `prj_P7mAPw72IJWhOsuGMwC2Ry2h3sjx`. Created 2026-10-04 with
-  `vercel project add`.
-  - Linked locally; `.vercel/` is gitignored.
-  - **No Git repository connected**, confirmed with `vercel git disconnect`,
-    so pushes never deploy.
+  `vercel project add`, and linked locally (`.vercel/` is gitignored).
+- **Git integration (2026-10-04, Andre's approval):**
+  - **Before:** connected to a stray public repo, `andrerlaster-lgtm/sim-game`.
+    It was created by the Vercel dashboard's connect flow and holds only a
+    README.
+  - **Now:** disconnected from `sim-game` and connected to
+    `andrerlaster-lgtm/The-City`.
+  - The production branch is set to **`production`** (Andre, in the
+    dashboard). Vercel requires that branch to exist, so it was created at
+    `e1fc012`.
+  - **So pushes to `main` build protected previews,** and production only
+    happens by pushing to `production` or running `vercel promote`. Neither
+    is ever done without Andre's request.
+  - **`sim-game` isn't deleted yet.** It's no longer connected to anything.
 - **Build settings** are pinned in `vercel.json`: Vite, `npm ci`,
   `npm run build`, output `dist`. Node 24.x. `.vercelignore` excludes local
   folders.
@@ -330,6 +344,12 @@ Working tree: clean after the M7 commit. `main` is 1 commit ahead of
     origin by `tests/e2e/fixtures.ts`.
   - Remote runs record no traces. No bypass secret, `.env.local` or
     protection change was needed.
+- **Protection:** Deployment Protection is `all_except_custom_domains`,
+  which put the earlier production `*.vercel.app` alias in public view. Keep
+  production unused.
+- **Automation-bypass secret:** created 22:37 on 2026-10-04, apparently by
+  the CLI during `vercel curl` / `vercel env run`. Playwright doesn't use it
+  (it uses the OIDC token). Not revoked yet, pending Andre's decision.
 - **Incident (2026-10-04):** the first deploy went to **production** despite
   `--target=preview` (this was the Stage 1 plan's known caveat).
   - It got a **public** alias, `the-city-gray.vercel.app` (HTTP 200).
