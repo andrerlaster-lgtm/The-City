@@ -14,7 +14,10 @@ import { demolishRoads, placeRoads, previewDemolish, previewRoads, type RoadPrev
 import type { PlayerCommand, CommandResult } from './commands';
 import { addBuilding, buildingAtTile, buildingIdsAt, refreshBuildingAccess, removeBuildingsAt, type BuildingInstance } from './buildings/buildings';
 import { previewBuilding, type BuildingPreview } from './buildings/placement';
-import { closeDay, emptyLedger, projectedDaily, type DailyReport, type Ledger } from './economy/economy';
+import { cityCapacity, emptyLedger, projectedDaily, type DailyReport, type Ledger } from './economy/economy';
+import { runDaily } from './daily';
+import { citizenCounts, clearDemolishedAssignments, occupancyFor, type BuildingOccupancy, type Citizen } from './citizens/citizens';
+import { foodChangePerDay } from './resources/food';
 
 export type { PlayerCommand, CommandResult } from './commands';
 
@@ -33,6 +36,12 @@ export interface SimSnapshot {
   population: number;
   freeHousing: number;
   freeJobs: number;
+  employed: number;
+  unemployed: number;
+  hungry: number;
+  homeless: number;
+  food: number;
+  foodChange: number;
   speed: 0 | 1 | 2 | 3;
   economy: { today: Ledger; lastDay: DailyReport | null; projected: ReturnType<typeof projectedDaily>; immigrationPaused: boolean };
 }
@@ -53,6 +62,9 @@ export class Simulation {
       nextEntityId: 1,
       speed: BALANCE.time.startSpeed,
       economy: { today: emptyLedger(), lastDay: null },
+      citizens: [],
+      nextCitizenId: 1,
+      food: BALANCE.citizens.startingFood,
     };
   }
 
@@ -60,10 +72,7 @@ export class Simulation {
     this.state.tick += 1;
     this.state.rngState = this.rng.getState();
     if (isDayStart(this.state.tick)) {
-      const closed = closeDay(this.state.economy.today, dayIndex(this.state.tick), this.state.treasury, this.state.buildings, this.state.world);
-      this.state.treasury = closed.treasury;
-      this.state.economy.lastDay = closed.report;
-      this.state.economy.today = emptyLedger();
+      runDaily(this.state, dayIndex(this.state.tick));
     }
     return { tick: this.state.tick, changedTiles: [], changedBuildings: [] };
   }
@@ -97,6 +106,7 @@ export class Simulation {
       return { ok: true, reason: null, cost: result.cost, changedTiles: result.tiles, changedBuildings: [result.building.id], treasury: result.treasury };
     }
     const removedBuildings = removeBuildingsAt(this.state.world, this.state.buildings, command.tiles);
+    clearDemolishedAssignments(this.state.citizens, new Set(removedBuildings.removed));
     const { removed, connectivityChanged } = demolishRoads(this.state.world, command.tiles);
     if (!removed.length && !removedBuildings.removed.length) return fail('Nothing to remove.', 0, treasury);
     const changedBuildings = refreshBuildingAccess(this.state.world, this.state.buildings);
@@ -122,6 +132,8 @@ export class Simulation {
   getBuildings(): readonly BuildingInstance[] { return this.state.buildings.map((building) => ({ ...building })); }
   getBuilding(id: number): BuildingInstance | undefined { const building = this.state.buildings.find((item) => item.id === id); return building ? { ...building } : undefined; }
   getBuildingAt(x: number, y: number): BuildingInstance | undefined { return buildingAtTile(this.state.world, this.state.buildings, x, y); }
+  getOccupancy(id: number): BuildingOccupancy { return occupancyFor(id, this.state.citizens); }
+  getCitizens(): readonly Citizen[] { return this.state.citizens.map((citizen) => ({ ...citizen })); }
 
   /** Read-only access for the renderer. Callers must not write to the layers. */
   getWorld(): Readonly<WorldMap> {
@@ -129,18 +141,26 @@ export class Simulation {
   }
 
   snapshot(): SimSnapshot {
+    const counts = citizenCounts(this.state.citizens, this.state.buildings);
+    const capacity = cityCapacity(this.state.buildings, this.state.citizens);
     return {
       tick: this.state.tick,
       date: tickToDate(this.state.tick),
       treasury: this.state.treasury,
-      population: 0,
-      freeHousing: 0,
-      freeJobs: 0,
+      population: counts.population,
+      freeHousing: capacity.freeHousing,
+      freeJobs: capacity.freeJobs,
+      employed: counts.employed,
+      unemployed: counts.unemployed,
+      hungry: counts.hungry,
+      homeless: counts.homeless,
+      food: this.state.food,
+      foodChange: foodChangePerDay(this.state.buildings, this.state.citizens),
       speed: this.state.speed,
       economy: {
         today: { ...this.state.economy.today },
         lastDay: this.state.economy.lastDay ? { ...this.state.economy.lastDay } : null,
-        projected: projectedDaily(this.state.buildings, this.state.world),
+        projected: projectedDaily(this.state.buildings, this.state.world, this.state.citizens),
         immigrationPaused: this.state.treasury <= 0,
       },
     };

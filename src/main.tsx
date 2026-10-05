@@ -4,6 +4,8 @@ import { Game } from './app/Game';
 import { App } from './ui/App';
 import './ui/styles/tokens.css';
 import './ui/styles/hud.css';
+import './ui/styles/economy.css';
+import './ui/styles/citizens.css';
 
 const canvasHost = document.getElementById('canvas-host');
 const uiRoot = document.getElementById('ui-root');

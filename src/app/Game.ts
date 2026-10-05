@@ -10,11 +10,12 @@ import type { RoadPreview } from '../sim/roads';
 import type { TileCoord } from '../core/types';
 import { TERRAIN, TerrainId, TreeKind } from '../data/terrain';
 import { terrainAt, treeAt } from '../sim/world/World';
-import { inBounds, screenToTile } from '../core/grid';
+import { inBounds, screenToTile, toIndex } from '../core/grid';
 import { Store } from './store';
 import { buildingDefinition, type BuildingId } from '../data/buildings';
 import type { BuildingInstance } from '../sim/buildings/buildings';
 import type { BuildingPreview } from '../sim/buildings/placement';
+import { accessHints, type AccessState } from '../render/accessHints';
 import { FixedStepper } from './loop';
 
 /** What the UI shows about the tile under the cursor. */
@@ -28,7 +29,7 @@ export interface HoverInfo {
 export type Tool = 'road' | 'demolish' | { build: BuildingId };
 
 /** What the toolbar shows while a stroke is being dragged. */
-export type ToolPreview = ({ kind: 'road' } & RoadPreview) | ({ kind: 'build' } & BuildingPreview) | { kind: 'demolish'; removable: number };
+export type ToolPreview = ({ kind: 'road' } & RoadPreview) | ({ kind: 'build'; access: AccessState } & BuildingPreview) | { kind: 'demolish'; removable: number };
 
 export class Game {
   readonly sim: Simulation;
@@ -102,7 +103,10 @@ export class Game {
     if (!tool || !tiles) { this.toolPreview.set(null); return; }
     if (tool === 'road') this.toolPreview.set({ kind: 'road', ...this.sim.previewRoads(tiles) });
     else if (tool === 'demolish') this.toolPreview.set({ kind: 'demolish', ...this.sim.previewDemolish(tiles) });
-    else this.toolPreview.set({ kind: 'build', ...this.sim.previewBuilding(tool.build, tiles[tiles.length - 1] ?? { x: 0, y: 0 }) });
+    else {
+      const preview = this.sim.previewBuilding(tool.build, tiles[tiles.length - 1] ?? { x: 0, y: 0 });
+      this.toolPreview.set({ kind: 'build', ...preview, access: accessHints(this.sim.getWorld(), preview.tiles).access });
+    }
   }
 
   private commit(tiles: TileCoord[], click: boolean): void {
@@ -144,7 +148,7 @@ export class Game {
     const terrain = terrainAt(world, tile.x, tile.y) ?? TerrainId.Grass;
     this.hover.set({
       tile,
-      terrain: TERRAIN[terrain].name,
+      terrain: toIndex(tile.x, tile.y, world.width) === world.entranceIndex ? 'Settlement entrance' : TERRAIN[terrain].name,
       wooded: treeAt(world, tile.x, tile.y) !== TreeKind.None,
       building: this.sim.getBuildingAt(tile.x, tile.y)?.defId ?? null,
     });
@@ -154,9 +158,10 @@ export class Game {
     const tool = this.tool.get();
     const definition = tool && typeof tool === 'object' ? buildingDefinition(tool.build) ?? null : null;
     const preview = definition && this.hoveredTile ? this.sim.previewBuilding(definition.id, this.hoveredTile) : null;
-    if (definition && preview) this.toolPreview.set({ kind: 'build', ...preview });
+    const access = preview ? accessHints(this.sim.getWorld(), preview.tiles) : null;
+    if (definition && preview && access) this.toolPreview.set({ kind: 'build', ...preview, access: access.access });
     else if (this.tool.get() && typeof this.tool.get() === 'object') this.toolPreview.set(null);
-    this.renderer.updatePlacement(definition, this.hoveredTile, preview);
+    this.renderer.updatePlacement(definition, this.hoveredTile, preview, access?.hints);
   }
 
   /** Call after the simulation changes so the UI re-reads it. */

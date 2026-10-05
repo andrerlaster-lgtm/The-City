@@ -5,7 +5,7 @@
 import { Application, Container, CullerPlugin, extensions } from 'pixi.js';
 import type { Viewport } from 'pixi-viewport';
 import type { TileCoord } from '../core/types';
-import { toIndex } from '../core/grid';
+import { TILE_HEIGHT, tileToScreen, toIndex } from '../core/grid';
 import type { WorldMap } from '../sim/world/World';
 import { buildTerrainTextures } from './art/terrainArt';
 import { buildTreeTextures } from './art/treeArt';
@@ -13,6 +13,7 @@ import { buildBuildingTextures } from './art/buildingArt';
 import { createCamera, mapExtent, setToolDrag, worldOffset } from './camera';
 import { HoverLayer } from './layers/HoverLayer';
 import { ObjectLayer } from './layers/ObjectLayer';
+import { MarkerLayer } from './layers/MarkerLayer';
 import { RoadLayer } from './layers/RoadLayer';
 import { TerrainLayer } from './layers/TerrainLayer';
 import { PALETTE } from './palette';
@@ -20,6 +21,7 @@ import { BUILDINGS, type BuildingDefinition } from '../data/buildings';
 import type { BuildingInstance } from '../sim/buildings/buildings';
 import type { BuildingPreview } from '../sim/buildings/placement';
 import { PlacementGhost } from './placementGhost';
+import type { EdgeHint } from './accessHints';
 
 extensions.add(CullerPlugin);
 
@@ -34,6 +36,7 @@ export class Renderer {
   private hover: HoverLayer | null = null;
   private buildingTextures = new Map<string, import('./art/buildingArt').BuildingTexture>();
   private ghost: PlacementGhost | null = null;
+  private markers: MarkerLayer | null = null;
 
   async init(host: HTMLElement): Promise<void> {
     await this.app.init({
@@ -61,13 +64,20 @@ export class Renderer {
     this.roads = new RoadLayer();
     this.hover = new HoverLayer(reduceMotion);
     this.ghost = new PlacementGhost();
+    this.markers = new MarkerLayer(this.buildingTextures);
 
     this.terrain.build(world);
     this.objects.build(world);
     this.roads.build(world);
-    this.world.addChild(this.terrain.container, this.roads.container, this.objects.container, this.hover.container, this.ghost.container);
+    this.markers.setEntrance(world);
+    this.world.addChild(this.terrain.container, this.roads.container, this.objects.container, this.hover.container, this.ghost.container, this.markers.container);
     this.camera.addChild(this.world);
     this.app.stage.addChild(this.camera);
+    // Start looking at the settlement entrance: every road has to begin there.
+    if (world.entranceIndex >= 0) {
+      const top = tileToScreen(world.entranceIndex % world.width, Math.floor(world.entranceIndex / world.width));
+      this.camera.moveCenter(offset.x + top.x, offset.y + top.y + TILE_HEIGHT / 2);
+    }
 
     const hover = this.hover;
     this.app.ticker.add((t) => hover.update(t));
@@ -90,12 +100,13 @@ export class Renderer {
   refreshBuildings(world: Readonly<WorldMap>, buildings: readonly BuildingInstance[], tiles: readonly TileCoord[]): void {
     for (const { x, y } of tiles) if (x >= 0 && y >= 0 && x < world.width && y < world.height) this.objects?.applyTree(world, toIndex(x, y, world.width));
     this.objects?.applyBuildings(buildings);
+    this.markers?.setBuildingWarnings(buildings);
   }
 
   setSelectedBuilding(id: number | null): void { this.objects?.setSelected(id); }
 
-  updatePlacement(definition: BuildingDefinition | null, cursor: TileCoord | null, preview: BuildingPreview | null): void {
-    this.ghost?.update(definition, definition ? this.buildingTextures.get(definition.art) : undefined, cursor, preview);
+  updatePlacement(definition: BuildingDefinition | null, cursor: TileCoord | null, preview: BuildingPreview | null, hints: readonly EdgeHint[] = []): void {
+    this.ghost?.update(definition, definition ? this.buildingTextures.get(definition.art) : undefined, cursor, preview, hints);
   }
 
   setToolActive(active: boolean): void {

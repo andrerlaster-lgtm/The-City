@@ -28,4 +28,9 @@ export const PALETTE = {
   wallCream: 0xf2e3c6,
   shadow: 0x1a2219,
   highlight: 0xfff6dc,
+  /** Road-access hints and map markers. */
+  accessGood: 0x72ef9b,
+  accessWarn: 0xffb347,
+  accessHint: 0xfff1b8,
+  entrance: 0xffd36b,
 } as const;

@@ -14,11 +14,19 @@ function describe(tool: Tool | null, preview: ToolPreview | null): { text: strin
       ? { text: `Remove ${preview.removable} item${preview.removable === 1 ? '' : 's'}`, invalid: false }
       : { text: 'Nothing removable here', invalid: true };
   }
-  if (preview?.kind === 'build') return { text: preview.ok ? `${preview.cost} coins · ready` : preview.reason ?? 'Cannot place here', invalid: !preview.ok };
+  if (preview?.kind === 'build') return describeBuild(preview);
   if (tool === 'road') return { text: 'Drag across land to build · 10 per tile', invalid: false };
   if (tool === 'demolish') return { text: 'Drag across roads to demolish', invalid: false };
   if (tool && typeof tool === 'object') return { text: 'Click a tile to place · Escape cancels', invalid: false };
   return { text: 'Pick a tool · right-drag pans while building', invalid: false };
+}
+
+/** Placement text, including whether the touching road actually reaches the Entrance. */
+function describeBuild(preview: Extract<ToolPreview, { kind: 'build' }>): { text: string; invalid: boolean } {
+  if (preview.reason === 'Needs road access') return { text: 'Needs road access · build a road on one of the arrows', invalid: true };
+  if (!preview.ok) return { text: preview.reason ?? 'Cannot place here', invalid: true };
+  if (preview.access === 'disconnected') return { text: `${preview.cost} coins · road doesn't reach the Entrance, so nobody can live or work here yet`, invalid: true };
+  return { text: `${preview.cost} coins · ready · connected to the Entrance`, invalid: false };
 }
 
 export function ToolBar({ tool, preview, treasury, onSelect }: {

@@ -24,6 +24,17 @@ export const BALANCE = {
     roadUpkeepPerTile: 0.1,
     taxPerEmployed: 2,
     taxPerResident: 1,
+    workshopRevenuePerWorker: 2,
+  },
+  citizens: {
+    startingFood: 30,
+    foodPerFarmWorker: 2,
+    foodPerCitizen: 1,
+    maxArrivalsPerDay: 4,
+    hungryDaysBeforeLeaving: 5,
+    unemployedDaysBeforeLeaving: 7,
+    homelessDaysBeforeLeaving: 3,
+    // The Well's radius (6) lives on its definition: BUILDINGS → serviceRadius.
   },
 } as const;
 

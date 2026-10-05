@@ -166,6 +166,9 @@ body {
   font-size: 15px;
   font-variant-numeric: tabular-nums;
 }
+.stat__button { display: flex; align-items: center; gap: var(--space-2); padding: 0; color: inherit; background: transparent; border: 0; font: inherit; text-align: left; cursor: pointer; }
+.stat__button:hover .stat__value { color: var(--accent); }
+.top-bar__stats .stat:nth-child(4) .stat__value { font-size: 11px; }
 
 .top-bar__clock {
   display: flex;
@@ -204,7 +207,7 @@ body {
   background: var(--panel-bg);
   box-shadow: var(--panel-shadow);
 }
-.speed-controls button, .economy-panel__close {
+.speed-controls button {
   color: var(--text);
   background: rgba(255,255,255,.05);
   border: 1px solid var(--panel-border);
@@ -213,26 +216,6 @@ body {
   cursor: pointer;
 }
 .speed-controls button[aria-pressed="true"] { background: var(--accent); color: var(--void); }
-.economy-panel {
-  position: absolute;
-  top: 136px; /* below the speed controls */
-  left: var(--space-4);
-  width: 300px;
-  padding: 14px;
-  color: var(--text);
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--panel-shadow);
-  backdrop-filter: blur(10px);
-}
-.economy-panel h2 { margin: 0 0 8px; font-size: 16px; }
-.economy-panel h3 { margin: 14px 0 6px; color: var(--text-muted); font-size: 11px; text-transform: uppercase; }
-.economy-panel p { margin: 6px 0; font-size: 12px; }
-.economy-panel dl { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; margin: 0; font-size: 12px; }
-.economy-panel dd { margin: 0; text-align: right; }
-.economy-panel dd small, .economy-panel p small { color: var(--text-muted); }
-.economy-panel__close { position: absolute; top: 8px; right: 8px; padding: 2px 8px; }
 .debt-banner {
   position: absolute;
   top: 136px;
@@ -279,7 +262,6 @@ body {
   }
   .tool-bar { top: 150px; max-width: calc(100vw - 16px); flex-wrap: wrap; justify-content: center; white-space: normal; }
   .speed-controls { top: 208px; left: 8px; }
-  .economy-panel { top: 256px; left: 8px; width: min(300px, calc(100vw - 16px)); }
   .debt-banner { top: 250px; }
   .build-menu { top: 210px; right: 8px; width: 190px; max-height: calc(100vh - 260px); }
   .info-panel { left: 8px; bottom: 8px; width: calc(100vw - 220px); max-width: 280px; }

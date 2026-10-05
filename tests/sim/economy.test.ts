@@ -1,13 +1,28 @@
 import { describe, expect, it } from 'vitest';
 import { taxesFor, buildingUpkeep, roadUpkeep } from '../../src/sim/economy/economy';
-import { createFlatScene, runTicks } from '../helpers/scene';
+import { createConnectedTown, createFlatScene, runDays, runTicks } from '../helpers/scene';
 import { toIndex } from '../../src/core/grid';
 
-describe('M4 economy', () => {
-  it('calculates defined taxes for supplied citizen counts while M4 uses zero', () => {
+describe('city economy', () => {
+  it('calculates approved tax rates and starts a new city with zero citizen income', () => {
     expect(taxesFor(4, 2)).toBe(8);
     expect(taxesFor(0, 0)).toBe(0);
     expect(createFlatScene().snapshot().economy.projected.income).toBe(0);
+  });
+
+  it('projects taxes and workshop revenue accurately for the next daily settlement', () => {
+    const sim = createConnectedTown();
+    runDays(sim, 5);
+    const projected = sim.snapshot().economy.projected;
+    expect(projected.taxesResidents).toBeGreaterThan(0);
+    expect(projected.revenue).toBeGreaterThan(0);
+    runDays(sim, 1);
+    expect(sim.snapshot().economy.lastDay).toMatchObject({
+      taxesResidents: projected.taxesResidents,
+      taxesEmployed: projected.taxesEmployed,
+      revenue: projected.revenue,
+      net: projected.net,
+    });
   });
 
   it('charges all building upkeep, including disconnected buildings', () => {
@@ -109,10 +124,10 @@ describe('M4 economy', () => {
     runTicks(sim, 24);
     const day1 = sim.snapshot().economy.lastDay;
     expect(day1).toMatchObject({ day: 1, construction: 110, upkeepBuildings: 1, net: -111, treasuryAfter: start - 111 });
-    expect(sim.snapshot().economy.today).toEqual({ construction: 0, upkeepBuildings: 0, upkeepRoads: 0, taxes: 0 });
+    expect(sim.snapshot().economy.today).toMatchObject({ construction: 0, upkeepBuildings: 0, upkeepRoads: 0, taxes: 0, revenue: 0, foodProduced: 0, foodEaten: 0 });
     runTicks(sim, 24);
-    expect(sim.snapshot().economy.lastDay).toMatchObject({ day: 2, construction: 0, net: -1, treasuryAfter: start - 112 });
-    expect(sim.snapshot().treasury).toBe(start - 112);
+    expect(sim.snapshot().economy.lastDay).toMatchObject({ day: 2, construction: 0, net: 0, treasuryAfter: start - 111 });
+    expect(sim.snapshot().treasury).toBe(start - 111);
   });
 
   it('produces deep-equal state for the same commands at the same ticks, whatever the speed', () => {
