@@ -150,9 +150,9 @@ Legend:
 
 | Check | Status |
 |---|---|
-| `production` protected against direct pushes | **Not in place.** GitHub refuses branch protection and rulesets for this private repo on the current plan: "Upgrade to GitHub Pro or make this repository public" (HTTP 403). |
-| `sim-game` archived | **Not yet.** `archived: false`, still public. It *is* unused: the only Vercel Git link is The-City. |
-| Automation-bypass secret revoked | **Not yet.** One `automation-bypass` entry is still on the project. Nothing uses it. |
+| `production` protected against direct pushes | **Blocked.** Approved and attempted (pull request required, enforced for admins). GitHub returned HTTP 403, "Upgrade to GitHub Pro or make this repository public", for both branch protection and rulesets on this private personal repo. **Andre chose to keep the `production` → public release model, with no Vercel guard.** |
+| `sim-game` archived | **Done.** Archived on 2026-10-04 (read-only, still public, unused by Vercel). |
+| Automation-bypass secret revoked | **Done.** Revoked on 2026-10-04 through Vercel's API (`regenerate: false`), leaving 0 entries. Playwright still reaches the preview with OIDC. |
 | No production deployment | **Holds.** 0 production deployments, and `production` hasn't been pushed since it was created at `e1fc012`. |
 
 **Options for guarding `production` without GitHub Pro:**

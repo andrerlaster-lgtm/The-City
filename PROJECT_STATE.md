@@ -689,16 +689,41 @@ passing 10 of 10 against the preview.
 
 1. Andre reviews `docs/STAGE-1-COMPLETION.md` and decides which
    carried-forward items go into Stage 2.
-2. **Safety items, verified 2026-10-04 and still open:**
-   - **`production` isn't protected.** GitHub branch protection and
-     rulesets need GitHub Pro for this private repo (HTTP 403).
-     Recommended: the Vercel guard
-     `"git": { "deploymentEnabled": { "production": false } }` in
-     `vercel.json` (needs Andre's approval).
-   - **`sim-game` isn't archived yet** (it's still public, but unused by
-     Vercel).
-   - **The automation-bypass secret isn't revoked yet.**
-   - No production deployment exists.
+2. **Safety items (2026-10-04):**
+   - **Done:** `sim-game` is archived. It stays public, read-only, and
+     unused by Vercel.
+   - **Done:** the automation-bypass secret is revoked through Vercel's
+     documented API (`regenerate: false`), leaving 0 entries. Playwright
+     still reaches the preview with OIDC (verified after the revoke).
+   - **Release model (Andre, 2026-10-04):**
+     - `main` → automatic protected Preview.
+     - `production` → a deliberate public Production release.
+     - **No Vercel-side guard**, by Andre's decision.
+   - **Blocked, still open:** GitHub protection for `production`.
+     - Andre approved it. Claude attempted the real `PUT` request (pull
+       request required, enforced for admins, no force pushes or deletions)
+       on 2026-10-04.
+     - GitHub returned **HTTP 403: "Upgrade to GitHub Pro or make this
+       repository public"**. The repo is private and owned by a personal
+       account on the Free plan, and Andre is an admin, so this is a plan
+       limit.
+     - Rulesets are refused the same way.
+     - Making the repo public wasn't approved, and wasn't done.
+     - Options:
+     - **GitHub Pro.** Then add a rule on `production`:
+       - require a pull request before merging
+       - block force pushes and deletions
+       - don't allow bypassing, including for admins
+     - **Interim:** a local `pre-push` hook refusing direct pushes to
+       `production`. It only protects this machine.
+   - **Final check (2026-10-04):**
+     - 0 production deployments (3 previews, all Ready).
+     - `production` is untouched at `e1fc012`; there's no
+       `the-city-git-production` deployment (404).
+     - `main` is at `a4783e1`, and its latest preview
+       (`the-city-8r8vbbf0q`) is protected (302 to the Vercel login).
+     - Vercel's production branch is `production`, and there are 0 bypass
+       entries.
 3. Plan Stage 2. Don't start until Andre asks. Never push to `production`
    without an explicit request.
 
