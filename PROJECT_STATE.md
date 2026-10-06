@@ -82,7 +82,9 @@ Committed and pushed as `e990771` at Andre's request. Andre hasn't
 confirmed a browser play-test of M5 yet.
 
 ## Current Task
-S2-M1 Foundations is done and pushed. Next: plan S2-M2.
+S2-M1 Foundations is done and pushed. S2-M2 (Happiness + Small Park) is
+planned in `docs/S2-M2-PLAN.md`, with Andre's decisions approved
+2026-10-05. Not started.
 
 ## Important Decisions
 - VS Code is the main development command center.
@@ -831,7 +833,7 @@ load average about 7–10.
 
 ## Next Step
 
-1. **Plan S2-M2** from `docs/STAGE-2-PLAN.md`.
+1. **Implement S2-M2** from `docs/S2-M2-PLAN.md` when Andre asks.
 3. `production` is never touched without an explicit release request.
 
 ## Last Updated
