@@ -16,7 +16,9 @@ in → expand → population grows. Full plan and acceptance criteria:
 
 **Stage 2 is planned** (`docs/STAGE-2-PLAN.md`, reconciled with
 `docs/STAGE-2-FEATURE-BANK.md`). **S2-M1 Foundations is implemented
-(Claude, 2026-10-05) and committed at Andre's request; not pushed yet.** See
+(Claude, 2026-10-05), committed (`e6c98b7`) and pushed. The protected preview
+https://the-city-jss5jp3ri-andrerlaster-lgtms-projects.vercel.app passed
+11/11 Playwright tests.** See
 "S2-M1 Implementation".
 
 The last QA run (`qa` agent, 2026-10-05) was **PASS**:
@@ -40,8 +42,8 @@ The M5 road-connection hints were play-tested by Andre on 2026-10-05: pass.
 
 ## Last Completed Step
 2026-10-05: S2-M1 Foundations implemented by Claude (see "S2-M1
-Implementation"). The M5 hints play-test passed (Andre). Committed at
-Andre's request; not pushed.
+Implementation"). The M5 hints play-test passed (Andre). Committed
+(`e6c98b7`) and pushed; the protected preview passed 11/11 Playwright tests.
 
 Before that: 2026-10-04: M7 — Polish and deploy, implemented by Claude (see "M7
 Implementation"). It includes:
@@ -80,8 +82,7 @@ Committed and pushed as `e990771` at Andre's request. Andre hasn't
 confirmed a browser play-test of M5 yet.
 
 ## Current Task
-S2-M1 Foundations: implemented, verified locally and committed. Next: push
-(on request), then check the protected preview and run Playwright against it.
+S2-M1 Foundations is done and pushed. Next: plan S2-M2.
 
 ## Important Decisions
 - VS Code is the main development command center.
@@ -819,11 +820,18 @@ load average about 7–10.
 - `git diff --check` clean
 - all files under 400 lines
 
+### Follow-up: collapsible building menu (2026-10-05, Andre's request)
+- The "Buildings" heading in `src/ui/BuildMenu.tsx` is now a toggle (▾/▸).
+  Collapsed, the menu is a small pill that still names the building being
+  placed (for example "Buildings · Cottage").
+- New e2e test: collapse, then expand. 434/434 unit tests and 12/12 Playwright
+  tests pass.
+- One run failed while the machine's load average was 131–179 on 8 cores (a
+  Safari tab at 96% CPU). Everything passed on rerun.
+
 ## Next Step
 
-1. **On request:** push, check the protected preview, and run Playwright
-   against it.
-2. **Then plan S2-M2** from `docs/STAGE-2-PLAN.md`.
+1. **Plan S2-M2** from `docs/STAGE-2-PLAN.md`.
 3. `production` is never touched without an explicit release request.
 
 ## Last Updated

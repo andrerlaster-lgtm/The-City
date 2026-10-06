@@ -105,6 +105,11 @@ body {
 }
 
 .build-menu h2, .info-panel h2 { margin: 0 0 10px; font-size: 15px; }
+.build-menu__toggle { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 0; color: inherit; font: inherit; background: none; border: 0; cursor: pointer; }
+.build-menu__toggle small { color: var(--accent); font-size: 12px; font-weight: 500; }
+.build-menu__chevron { color: var(--text-muted); font-size: 12px; }
+.build-menu.is-collapsed { width: auto; min-width: 140px; padding: 8px 12px; }
+.build-menu.is-collapsed h2 { margin: 0; }
 .build-menu h3 { margin: 10px 0 5px; color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
 .build-menu__item { display: flex; justify-content: space-between; width: 100%; padding: 7px 8px; color: var(--text); background: transparent; border: 0; border-radius: var(--radius-md); cursor: pointer; text-align: left; }
 .build-menu__item:hover, .build-menu__item[aria-pressed="true"] { background: rgba(255,255,255,.1); }

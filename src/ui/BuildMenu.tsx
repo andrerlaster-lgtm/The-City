@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { BUILDINGS, type BuildingId } from '../data/buildings';
 import { formatNumber } from './format';
 import type { Tool } from '../app/Game';
@@ -9,9 +10,17 @@ export function BuildMenu({ tool, treasury, onSelect }: {
 }) {
   const categories = ['Residential', 'Employment', 'Service'] as const;
   const activeId = tool && typeof tool === 'object' ? tool.build : null;
-  return <aside className="build-menu" aria-label="Building menu">
-    <h2>Buildings</h2>
-    {categories.map((category) => <section key={category}>
+  const [collapsed, setCollapsed] = useState(false);
+  const activeName = activeId ? BUILDINGS.find((building) => building.id === activeId)?.name : null;
+  return <aside className={collapsed ? 'build-menu is-collapsed' : 'build-menu'} aria-label="Building menu">
+    <h2>
+      <button type="button" className="build-menu__toggle" aria-expanded={!collapsed} aria-controls="build-menu-list"
+        title={collapsed ? 'Show buildings' : 'Hide buildings'} onClick={() => setCollapsed(!collapsed)}>
+        <span>Buildings{collapsed && activeName ? <small> · {activeName}</small> : null}</span>
+        <span className="build-menu__chevron" aria-hidden="true">{collapsed ? '▸' : '▾'}</span>
+      </button>
+    </h2>
+    {!collapsed && <div id="build-menu-list">{categories.map((category) => <section key={category}>
       <h3>{category}</h3>
       {BUILDINGS.filter((building) => building.category === category).map((building) => {
         const unaffordable = treasury < building.cost;
@@ -21,6 +30,6 @@ export function BuildMenu({ tool, treasury, onSelect }: {
           <span>{building.name}</span><span>{formatNumber(building.cost)} ◈</span>
         </button>;
       })}
-    </section>)}
+    </section>)}</div>}
   </aside>;
 }

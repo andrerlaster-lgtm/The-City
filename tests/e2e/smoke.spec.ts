@@ -180,3 +180,17 @@ test('the O key cycles map overlays with a legend, and the Entrance button works
   await page.locator('body').press('Home');
   expect(errors).toEqual([]);
 });
+
+test('the building menu collapses out of the way and expands again', async ({ page }) => {
+  await openGame(page);
+  await newGame(page);
+  const toggle = page.getByRole('button', { name: /^Buildings/ });
+  await page.getByRole('button', { name: /^Cottage/ }).click();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(toggle).toContainText('Cottage'); // the active tool stays visible
+  await expect(page.getByRole('button', { name: /^Farm/ })).toHaveCount(0);
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByRole('button', { name: /^Farm/ })).toBeVisible();
+});
