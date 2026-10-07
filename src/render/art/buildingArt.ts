@@ -2,7 +2,7 @@ import { Graphics, Rectangle, type Renderer, type Texture } from 'pixi.js';
 import type { BuildingDefinition } from '../../data/buildings';
 import { TILE_HEIGHT, TILE_WIDTH } from '../../core/grid';
 import { PALETTE } from '../palette';
-import { BUILDING_SCHEMES, SCHEMED_ART, lightsKey, schemeKey, shadeColor, type BuildingScheme } from './buildingSchemes';
+import { BUILDING_SCHEMES, SCHEMED_ART, extraKey, schemeKey, shadeColor, type BuildingExtra, type BuildingScheme } from './buildingSchemes';
 
 /** `anchorY` puts the texture's footprint diamond bottom on the sprite's position. */
 export interface BuildingTexture { texture: Texture; width: number; height: number; anchorY: number; }
@@ -34,27 +34,69 @@ export function buildBuildingTextures(renderer: Renderer, definitions: readonly 
       result.set(schemeKey(definition.art, i), art);
       if (i === 0) result.set(definition.art, art);
     });
-    result.set(lightsKey(definition.art), drawLights(renderer, definition));
+    for (const extra of ['lights', 'lived', 'vacant'] as const) result.set(extraKey(definition.art, extra), drawExtra(renderer, definition, extra));
   }
   return result;
 }
 
-/** Warm window and door light for the evening, the same size and anchor as the building. */
-function drawLights(renderer: Renderer, definition: BuildingDefinition): BuildingTexture {
+/** An extra layer for a schemed building (see `BuildingExtra`), the same size and anchor as it. */
+function drawExtra(renderer: Renderer, definition: BuildingDefinition, extra: BuildingExtra): BuildingTexture {
   const width = definition.size * TILE_WIDTH;
   const height = definition.size * TILE_HEIGHT + 72;
   const baseY = height - 12;
   const g = new Graphics();
-  const panels = housePanels(width, baseY, definition.size);
-  for (const panel of [panels.window, panels.door]) {
-    g.poly(panel).fill({ color: PALETTE.windowLit, alpha: 0.95 });
-    const [cx, cy] = centreOf(panel);
-    g.ellipse(cx, cy, 12, 10).fill({ color: PALETTE.windowLit, alpha: 0.09 });
-  }
+  const shape = housePanels(width, baseY, definition.size);
+  if (extra === 'lights') drawLights(g, shape);
+  else if (extra === 'vacant') drawVacantSign(g, width, baseY, definition.size);
+  else if (definition.housing > 0) drawLivedIn(g, shape);
+  else drawCrates(g, width, baseY, definition.size);
   const frame = new Rectangle(0, 0, width, height);
   const texture = renderer.generateTexture({ target: g, frame, resolution: 2, antialias: true });
   g.destroy();
   return { texture, width, height, anchorY: baseY / height };
+}
+
+/** Warm window and door light for the evening. */
+function drawLights(g: Graphics, shape: HouseShape): void {
+  for (const panel of [shape.window, shape.door]) {
+    g.poly(panel).fill({ color: PALETTE.windowLit, alpha: 0.95 });
+    const [cx, cy] = centreOf(panel);
+    g.ellipse(cx, cy, 12, 10).fill({ color: PALETTE.windowLit, alpha: 0.09 });
+  }
+}
+
+/** Someone lives here: a flower box under the window, a chimney and a doormat. */
+function drawLivedIn(g: Graphics, shape: HouseShape): void {
+  const [wx0, wy0, wx1, wy1] = shape.windowFrame;
+  g.poly([wx0! - 1, wy0! + 1, wx1! + 1, wy1! + 1, wx1! + 1, wy1! + 5, wx0! - 1, wy0! + 5]).fill(PALETTE.planter);
+  for (let i = 0; i < 4; i++) {
+    const t = (i + 0.5) / 4;
+    g.circle(wx0! + (wx1! - wx0!) * t, wy0! + (wy1! - wy0!) * t - 0.5, 2.2).fill(i % 2 ? PALETTE.flowerA : PALETTE.flowerB);
+  }
+  const chimneyX = shape.left + shape.bodyW * 0.22;
+  const chimneyBase = shape.bodyTop - 4;
+  g.rect(chimneyX, chimneyBase - 13, 6, 13).fill(PALETTE.chimney);
+  g.rect(chimneyX - 1, chimneyBase - 15, 8, 3).fill(shadeColor(PALETTE.chimney, 0.8));
+  const [dx0, dy0, dx1, dy1] = shape.door;
+  g.poly([dx0! - 2, dy0! + 1, dx1! + 2, dy1! + 1, dx1! - 1, dy1! + 4, dx0! - 5, dy0! + 4]).fill(PALETTE.doormat);
+}
+
+/** A busy workshop: a few crates stacked on the lot. */
+function drawCrates(g: Graphics, width: number, baseY: number, size: number): void {
+  const x = width * 0.2; const y = baseY - size * TILE_HEIGHT * 0.42;
+  for (const [ox, oy] of [[0, 0], [9, 4], [4, -7]] as const) {
+    g.rect(x + ox, y + oy - 7, 8, 7).fill(PALETTE.crate);
+    g.rect(x + ox, y + oy - 7, 8, 2).fill(shadeColor(PALETTE.crate, 1.15));
+    g.moveTo(x + ox, y + oy - 7).lineTo(x + ox + 8, y + oy).stroke({ color: shadeColor(PALETTE.crate, 0.75), width: 1 });
+  }
+}
+
+/** Nobody here yet: a small sign post on the front of the lot. */
+function drawVacantSign(g: Graphics, width: number, baseY: number, size: number): void {
+  const x = width * 0.74; const y = baseY - size * TILE_HEIGHT * 0.3;
+  g.rect(x - 1, y - 16, 2.5, 16).fill(PALETTE.trunk);
+  g.roundRect(x - 8, y - 22, 16, 9, 2).fill(PALETTE.signBoard);
+  g.rect(x - 5, y - 18.5, 10, 1.5).fill(PALETTE.signInk);
 }
 
 function centreOf(points: readonly number[]): [number, number] {

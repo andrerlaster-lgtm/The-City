@@ -32,6 +32,15 @@ export const PALETTE = {
   slateRoof: 0x8fa3b8,
   /** Lit windows in the evening (render/lighting.ts). */
   windowLit: 0xffd98a,
+  /** Lived-in details and lot props (LF-3). */
+  planter: 0x9b6f52,
+  flowerA: 0xf28fa6,
+  flowerB: 0xffd36b,
+  chimney: 0xb7a59a,
+  doormat: 0xc98a64,
+  crate: 0xc79b62,
+  signBoard: 0xfff6e6,
+  signInk: 0xd27b6a,
   shadow: 0x1a2219,
   highlight: 0xfff6dc,
   /** Road-access hints and map markers. */

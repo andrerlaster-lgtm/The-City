@@ -128,6 +128,9 @@ export class Renderer {
     this.sky.update(top, bottom, width, height);
   }
 
+  /** How full each home and workplace is (render/occupancy.ts), for lived-in details. */
+  setOccupancy(fill: ReadonlyMap<number, number>): void { this.objects?.setOccupancy(fill); }
+
   /**
    * Looks at the settlement entrance: every road has to begin there. `animate` glides the
    * camera there (skipped under reduced motion); otherwise it jumps.

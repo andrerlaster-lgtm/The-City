@@ -21,6 +21,7 @@ import { FixedStepper } from './loop';
 import { watchReducedMotion } from './motion';
 import { ToastStore } from './toasts';
 import { clockOf, cycleStrength, dayLightAt } from '../render/lighting';
+import { occupancyRatios } from '../render/occupancy';
 import { BALANCE } from '../data/balance';
 
 /** What the UI shows about the tile under the cursor. */
@@ -58,6 +59,8 @@ export class Game {
   private started = false;
   /** Time of day shown on the map (0–1); held while paused, reset when the city changes. */
   private dayClock: number | null = null;
+  /** The game day whose occupancy the map shows (lived-in details refresh once a day). */
+  private occupancyDay = -1;
   /** Called after every simulation tick (the save service autosaves from here). */
   onTick: ((tick: number) => void) | null = null;
   /** Called after the player changes the city or the speed (the save service autosaves from here). */
@@ -88,7 +91,10 @@ export class Game {
     this.dayClock = null;
     if (options.paused) this.pauseForLoad();
     else this.lastSpeed = sim.getSpeed() === 0 ? this.lastSpeed : sim.getSpeed() as 1 | 2 | 3;
-    if (this.started) this.renderer.rebuildWorld(sim.getWorld(), sim.getBuildings());
+    if (this.started) {
+      this.renderer.rebuildWorld(sim.getWorld(), sim.getBuildings());
+      this.refreshOccupancy();
+    }
     this.overlayShown = '';
     this.publish();
   }
@@ -99,12 +105,16 @@ export class Game {
     watchReducedMotion((reduced) => { this.reducedMotion.set(reduced); this.renderer.setReducedMotion(reduced); });
     const world = this.sim.getWorld();
     const camera = this.renderer.showWorld(world, this.sim.getBuildings());
+    this.refreshOccupancy();
     this.renderer.app.ticker.add((ticker) => {
       const speed = this.sim.getSpeed();
       if (speed !== 0) this.lastSpeed = speed;
       const count = this.stepper.advance(ticker.deltaMS, speed);
       for (let i = 0; i < count; i++) this.onTick?.(this.sim.tick().tick);
-      if (count > 0) this.publish();
+      if (count > 0) {
+        this.publish();
+        if (Math.floor(this.sim.getTick() / BALANCE.time.ticksPerDay) !== this.occupancyDay) this.refreshOccupancy();
+      }
       this.updateDayLight(speed);
     });
     attachKeyboardPan(camera, this.renderer.app.ticker);
@@ -128,6 +138,12 @@ export class Game {
     window.addEventListener('keydown', keydown);
     const detachTools = this.detachTools;
     this.detachTools = () => { detachTools?.(); window.removeEventListener('keydown', keydown); };
+  }
+
+  /** Lived-in details and window brightness follow who lives and works where. */
+  private refreshOccupancy(): void {
+    this.occupancyDay = Math.floor(this.sim.getTick() / BALANCE.time.ticksPerDay);
+    this.renderer.setOccupancy(occupancyRatios(this.sim.getBuildings(), this.sim.getCitizens()));
   }
 
   /** Day and night on the map, from the sim clock plus progress towards the next hour. */
@@ -205,6 +221,7 @@ export class Game {
     if (result.ok) {
       this.renderer.refreshTiles(this.sim.getWorld(), result.changedTiles);
       this.renderer.refreshBuildings(this.sim.getWorld(), this.sim.getBuildings(), result.changedTiles);
+      this.refreshOccupancy();
       if (command.type === 'place-building') this.renderer.animateBuildingIn(result.changedBuildings[0]!);
       if (doomed) {
         for (const building of doomed.buildings) this.renderer.dust(building.tiles, building.size);

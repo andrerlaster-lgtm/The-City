@@ -27,9 +27,14 @@ export function schemeKey(art: string, scheme: number): string {
   return `${art}#${scheme}`;
 }
 
-/** The evening window-light texture key for an art key (schemed art only). */
-export function lightsKey(art: string): string {
-  return `${art}@lights`;
+/**
+ * Extras drawn over schemed buildings, each the same size and anchor as the building:
+ * evening window light, lived-in details (or crates at a busy workshop), a vacant sign.
+ */
+export type BuildingExtra = 'lights' | 'lived' | 'vacant';
+
+export function extraKey(art: string, extra: BuildingExtra): string {
+  return `${art}@${extra}`;
 }
 
 /**

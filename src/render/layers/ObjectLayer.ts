@@ -8,7 +8,8 @@ import { TreeKind } from '../../data/terrain';
 import type { WorldMap } from '../../sim/world/World';
 import type { TreeTexture } from '../art/treeArt';
 import type { BuildingTexture } from '../art/buildingArt';
-import { buildingTextureKey, lightsKey } from '../art/buildingSchemes';
+import { buildingTextureKey, extraKey } from '../art/buildingSchemes';
+import { windowGlowFor } from '../occupancy';
 import type { BuildingInstance } from '../../sim/buildings/buildings';
 import { buildingDefinition } from '../../data/buildings';
 import { footprintBottom } from '../cameraMath';
@@ -18,16 +19,21 @@ export function depthOf(x: number, y: number, sub = 0): number {
   return (x + y) * 4 + sub;
 }
 
+/** Extra sprites drawn over a schemed building (see art/buildingSchemes `BuildingExtra`). */
+interface Extras { lights?: Sprite; lived?: Sprite; vacant?: Sprite; connected: boolean }
+
 export class ObjectLayer {
   readonly container = new Container({ label: 'objects', sortableChildren: true });
   private trees = new Map<number, Sprite>();
   private buildings = new Map<number, Sprite>();
-  /** Evening window light per connected building, drawn just above it (not tinted). */
-  private lights = new Map<number, Sprite>();
+  /** Window light (untinted), lived-in details and vacant sign per building. */
+  private extras = new Map<number, Extras>();
   private selected: number | null = null;
   /** The current day/night tint and window glow (see render/lighting.ts). */
   private tint = 0xffffff;
   private glow = 0;
+  /** How full each home or workplace is, 0–1 (see render/occupancy.ts). */
+  private fill: ReadonlyMap<number, number> = new Map();
 
   constructor(private readonly treeTextures: Map<TreeKind, TreeTexture>, private readonly buildingTextures: Map<string, BuildingTexture>) {}
 
@@ -35,7 +41,7 @@ export class ObjectLayer {
     this.container.removeChildren().forEach((c) => c.destroy());
     this.trees.clear();
     this.buildings.clear();
-    this.lights.clear();
+    this.extras.clear();
     for (let i = 0; i < world.trees.length; i++) this.applyTree(world, i);
     this.applyBuildings(buildings);
   }
@@ -45,9 +51,10 @@ export class ObjectLayer {
 
   applyBuildings(buildings: readonly BuildingInstance[]): void {
     for (const child of [...this.container.children]) if (child.label.startsWith('building-outline-')) child.destroy();
-    for (const sprite of [...this.buildings.values(), ...this.lights.values()]) { this.container.removeChild(sprite); sprite.destroy(); }
+    for (const sprite of this.buildings.values()) { this.container.removeChild(sprite); sprite.destroy(); }
+    for (const extra of this.extras.values()) for (const sprite of [extra.lights, extra.lived, extra.vacant]) sprite?.destroy();
     this.buildings.clear();
-    this.lights.clear();
+    this.extras.clear();
     for (const building of buildings) {
       const definition = buildingDefinition(building.defId);
       if (!definition) continue;
@@ -62,18 +69,15 @@ export class ObjectLayer {
       sprite.tint = this.tint;
       this.buildings.set(building.id, sprite);
       this.container.addChild(sprite);
-      const lit = building.connected ? this.buildingTextures.get(lightsKey(definition.art)) : undefined;
-      if (lit) {
-        const light = new Sprite(lit.texture);
-        light.anchor.set(0.5, lit.anchorY);
-        light.position.copyFrom(sprite.position);
-        light.zIndex = sprite.zIndex + 0.5;
-        light.cullable = true;
-        light.eventMode = 'none';
-        this.showLight(light);
-        this.lights.set(building.id, light);
-        this.container.addChild(light);
-      }
+      const extras: Extras = {
+        connected: building.connected,
+        lived: this.extraSprite(sprite, extraKey(definition.art, 'lived'), 0.25),
+        vacant: this.extraSprite(sprite, extraKey(definition.art, 'vacant'), 0.25),
+        lights: this.extraSprite(sprite, extraKey(definition.art, 'lights'), 0.5),
+      };
+      if (extras.lights) extras.lights.tint = 0xffffff;
+      this.extras.set(building.id, extras);
+      this.showExtras(building.id, extras);
     }
     this.setSelected(this.selected);
   }
@@ -84,16 +88,44 @@ export class ObjectLayer {
       this.tint = tint;
       for (const sprite of this.trees.values()) sprite.tint = tint;
       for (const sprite of this.buildings.values()) sprite.tint = tint;
+      for (const extra of this.extras.values()) for (const sprite of [extra.lived, extra.vacant]) if (sprite) sprite.tint = tint;
     }
     if (glow !== this.glow) {
       this.glow = glow;
-      for (const light of this.lights.values()) this.showLight(light);
+      for (const [id, extra] of this.extras) this.showExtras(id, extra);
     }
   }
 
-  private showLight(light: Sprite): void {
-    light.alpha = this.glow;
-    light.visible = this.glow > 0.02;
+  /** New occupancy (once per game day, or after the city changes). */
+  setOccupancy(fill: ReadonlyMap<number, number>): void {
+    this.fill = fill;
+    for (const [id, extra] of this.extras) this.showExtras(id, extra);
+  }
+
+  private extraSprite(body: Sprite, key: string, depth: number): Sprite | undefined {
+    const art = this.buildingTextures.get(key);
+    if (!art) return undefined;
+    const sprite = new Sprite(art.texture);
+    sprite.anchor.set(0.5, art.anchorY);
+    sprite.position.copyFrom(body.position);
+    sprite.zIndex = body.zIndex + depth;
+    sprite.cullable = true;
+    sprite.eventMode = 'none';
+    sprite.tint = this.tint;
+    this.container.addChild(sprite);
+    return sprite;
+  }
+
+  /** Lived-in details once anyone is there, a vacant sign while empty, lights by how full. */
+  private showExtras(id: number, extra: Extras): void {
+    const ratio = this.fill.get(id);
+    if (extra.lived) extra.lived.visible = (ratio ?? 0) > 0;
+    if (extra.vacant) extra.vacant.visible = ratio === 0;
+    if (extra.lights) {
+      const glow = extra.connected ? windowGlowFor(this.glow, ratio) : 0;
+      extra.lights.alpha = glow;
+      extra.lights.visible = glow > 0.02;
+    }
   }
 
   setSelected(id: number | null): void {
