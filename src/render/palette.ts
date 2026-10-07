@@ -26,6 +26,10 @@ export const PALETTE = {
   roadDisconnected: 0xa8705a,
   roofRed: 0xc4553b,
   wallCream: 0xf2e3c6,
+  /** Building lots, doors and the workshop roof (pastel schemes: art/buildingSchemes.ts). */
+  lotGround: 0xc9ad8c,
+  door: 0x9a7b8f,
+  slateRoof: 0x8fa3b8,
   shadow: 0x1a2219,
   highlight: 0xfff6dc,
   /** Road-access hints and map markers. */

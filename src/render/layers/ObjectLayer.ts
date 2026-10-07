@@ -8,6 +8,7 @@ import { TreeKind } from '../../data/terrain';
 import type { WorldMap } from '../../sim/world/World';
 import type { TreeTexture } from '../art/treeArt';
 import type { BuildingTexture } from '../art/buildingArt';
+import { buildingTextureKey } from '../art/buildingSchemes';
 import type { BuildingInstance } from '../../sim/buildings/buildings';
 import { buildingDefinition } from '../../data/buildings';
 import { footprintBottom } from '../cameraMath';
@@ -43,7 +44,7 @@ export class ObjectLayer {
     for (const building of buildings) {
       const definition = buildingDefinition(building.defId);
       if (!definition) continue;
-      const art = this.buildingTextures.get(definition.art);
+      const art = this.buildingTextures.get(buildingTextureKey(definition.art, building.id)) ?? this.buildingTextures.get(definition.art);
       if (!art) continue;
       const sprite = new Sprite(art.texture);
       sprite.anchor.set(0.5, art.anchorY);
