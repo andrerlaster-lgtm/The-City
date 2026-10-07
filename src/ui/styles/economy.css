@@ -8,10 +8,12 @@
   padding: 14px;
   color: var(--text);
   background: var(--panel-bg);
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--panel-shadow);
-  backdrop-filter: blur(10px);
+  backdrop-filter: var(--panel-blur);
 }
 .economy-panel h2 { margin: 0 0 8px; font-size: 16px; }
 .economy-panel h3 { margin: 14px 0 6px; color: var(--text-muted); font-size: 11px; text-transform: uppercase; }
@@ -25,7 +27,7 @@
   right: 8px;
   padding: 2px 8px;
   color: var(--text);
-  background: rgba(255,255,255,.05);
+  background: var(--surface);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-md);
   cursor: pointer;

@@ -4,6 +4,7 @@ import type { SlotId } from '../save/format';
 import { SLOT_LABELS, type SlotSummary } from '../save/slots';
 import { formatNumber } from './format';
 import { useStore } from './useStore';
+import { ThemePicker } from './ThemePicker';
 
 type Pending = { action: 'save' | 'load' | 'delete'; slot: SlotId } | { action: 'new'; seed: number | undefined };
 
@@ -50,6 +51,9 @@ export function SaveMenu({ saves, seed, onClose }: { saves: SaveService; seed: n
     {copied && <p className="save-menu__hint">{copied}</p>}
     {available === false && <p className="save-menu__warning">Saving isn’t available in this browser. The game still runs.</p>}
     {status && <p className={status.kind === 'error' ? 'save-menu__warning' : 'save-menu__status'} role="status">{status.text}</p>}
+
+    <h3>Look</h3>
+    <ThemePicker />
 
     <h3>Saves</h3>
     <ul className="save-menu__slots">

@@ -5,6 +5,7 @@ import { SaveService, startupSimulation } from './app/saveService';
 import { IndexedDbSaveProvider } from './save/providers/indexedDb';
 import { SaveSlots } from './save/slots';
 import { App } from './ui/App';
+import './app/theme'; // applies the saved theme before the first paint
 import './ui/styles/tokens.css';
 import './ui/styles/hud.css';
 import './ui/styles/economy.css';

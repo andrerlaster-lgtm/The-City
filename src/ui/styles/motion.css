@@ -29,17 +29,19 @@
   font-size: 12px;
   color: var(--text);
   background: var(--panel-bg);
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
   border: 1px solid var(--panel-border);
   border-left-width: 4px;
   border-radius: var(--radius-md);
   box-shadow: var(--panel-shadow);
-  backdrop-filter: blur(10px);
+  backdrop-filter: var(--panel-blur);
   pointer-events: auto;
 }
-.toast--success { border-left-color: #83d79b; }
+.toast--success { border-left-color: var(--good-text); }
 .toast--info { border-left-color: var(--accent); }
-.toast--warning { border-left-color: #ffc36e; }
-.toast--error { border-left-color: #ff8a6b; color: #ffdb9c; }
+.toast--warning { border-left-color: var(--warn-text); }
+.toast--error { border-left-color: var(--error-text); color: var(--callout-text); }
 .toast button {
   padding: 0 6px;
   color: var(--text-muted);

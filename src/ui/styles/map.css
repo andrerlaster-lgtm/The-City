@@ -13,10 +13,11 @@
   gap: 6px;
   padding: 6px 8px;
   background: var(--panel-bg);
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--panel-shadow);
-  backdrop-filter: blur(10px);
 }
 .map-controls__label { color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
 .map-controls button {
@@ -24,13 +25,13 @@
   color: var(--text);
   font: inherit;
   font-size: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-md);
   cursor: pointer;
 }
 .map-controls [role="group"] { display: flex; gap: 2px; }
-.map-controls button[aria-pressed="true"] { background: var(--accent); color: var(--void); }
+.map-controls button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 .map-legend {
   display: grid;
   gap: 4px;
@@ -38,6 +39,8 @@
   font-size: 12px;
   color: var(--text);
   background: var(--panel-bg);
+  -webkit-backdrop-filter: var(--panel-blur);
+  backdrop-filter: var(--panel-blur);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-md);
   box-shadow: var(--panel-shadow);
