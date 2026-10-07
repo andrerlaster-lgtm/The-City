@@ -93,7 +93,7 @@ export class Game {
     this.started = true;
     watchReducedMotion((reduced) => { this.reducedMotion.set(reduced); this.renderer.setReducedMotion(reduced); });
     const world = this.sim.getWorld();
-    const camera = this.renderer.showWorld(world);
+    const camera = this.renderer.showWorld(world, this.sim.getBuildings());
     this.renderer.app.ticker.add((ticker) => {
       const speed = this.sim.getSpeed();
       if (speed !== 0) this.lastSpeed = speed;

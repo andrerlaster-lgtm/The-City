@@ -56,7 +56,7 @@ export class Renderer {
   }
 
   /** Builds the map layers and camera for a world. */
-  showWorld(world: Readonly<WorldMap>): Viewport {
+  showWorld(world: Readonly<WorldMap>, buildings: readonly BuildingInstance[] = []): Viewport {
     const renderer = this.app.renderer;
 
     const extent = mapExtent(world.width, world.height);
@@ -72,9 +72,10 @@ export class Renderer {
     this.markers = new MarkerLayer(this.buildingTextures);
 
     this.terrain.build(world);
-    this.objects.build(world);
+    this.objects.build(world, buildings);
     this.roads.build(world);
     this.markers.setEntrance(world);
+    this.markers.setBuildingWarnings(buildings);
     this.world.addChild(this.terrain.container, this.roads.container, this.overlay.container, this.objects.container, this.effects.container, this.hover.container, this.ghost.container, this.markers.container);
     this.camera.addChild(this.world);
     this.app.stage.addChild(this.camera);
