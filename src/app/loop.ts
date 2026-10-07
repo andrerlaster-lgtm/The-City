@@ -17,4 +17,10 @@ export class FixedStepper {
     else this.accumulator -= ticks * tickMs;
     return ticks;
   }
+
+  /** How far (0–1) real time has moved towards the next tick, for smooth visuals. */
+  progress(speed: 0 | 1 | 2 | 3): number {
+    if (speed === 0) return 0;
+    return Math.min(1, this.accumulator / (BALANCE.time.msPerTickAt1x / speed));
+  }
 }

@@ -19,6 +19,8 @@ import type { OverlayKind } from './overlays';
 import { MarkerLayer } from './layers/MarkerLayer';
 import { RoadLayer } from './layers/RoadLayer';
 import { TerrainLayer } from './layers/TerrainLayer';
+import { SkyLayer } from './layers/SkyLayer';
+import type { DayLight } from './lighting';
 import { PALETTE } from './palette';
 import { BUILDINGS, type BuildingDefinition } from '../data/buildings';
 import type { BuildingInstance } from '../sim/buildings/buildings';
@@ -42,6 +44,9 @@ export class Renderer {
   private markers: MarkerLayer | null = null;
   private readonly effects = new EffectsLayer();
   private readonly overlay = new OverlayLayer();
+  private readonly sky = new SkyLayer();
+  /** The last applied day light, rounded, so unchanged frames cost nothing. */
+  private dayKey = '';
   private reduceMotion = false;
 
   async init(host: HTMLElement): Promise<void> {
@@ -78,7 +83,7 @@ export class Renderer {
     this.markers.setBuildingWarnings(buildings);
     this.world.addChild(this.terrain.container, this.roads.container, this.overlay.container, this.objects.container, this.effects.container, this.hover.container, this.ghost.container, this.markers.container);
     this.camera.addChild(this.world);
-    this.app.stage.addChild(this.camera);
+    this.app.stage.addChild(this.sky.graphics, this.camera);
     this.centreOnEntrance(world);
 
     const hover = this.hover;
@@ -101,6 +106,26 @@ export class Renderer {
     this.ghost?.update(null, undefined, null, null);
     this.overlay.clear();
     this.centreOnEntrance(world);
+  }
+
+  /**
+   * Day and night: tints the ground, roads, trees and buildings, lights windows and
+   * repaints the sky. Overlays, markers, the ghost and effects stay untinted, so they
+   * read the same at any hour. Rounded, so most frames change nothing.
+   */
+  setDayLight(light: DayLight): void {
+    const step = (c: number) => c & 0xfcfcfc;
+    const tint = step(light.tint);
+    const glow = Math.round(light.windowGlow * 40) / 40;
+    const top = light.skyTop & 0xf8f8f8; const bottom = light.skyBottom & 0xf8f8f8;
+    const { width, height } = this.app.screen;
+    const key = `${tint}|${glow}|${top}|${bottom}|${width}|${height}`;
+    if (key === this.dayKey) return;
+    this.dayKey = key;
+    if (this.terrain) this.terrain.container.tint = tint;
+    if (this.roads) this.roads.container.tint = tint;
+    this.objects?.setDayLight(tint, glow);
+    this.sky.update(top, bottom, width, height);
   }
 
   /**

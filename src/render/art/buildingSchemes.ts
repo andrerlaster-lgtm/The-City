@@ -27,6 +27,11 @@ export function schemeKey(art: string, scheme: number): string {
   return `${art}#${scheme}`;
 }
 
+/** The evening window-light texture key for an art key (schemed art only). */
+export function lightsKey(art: string): string {
+  return `${art}@lights`;
+}
+
 /**
  * The texture key a placed building draws with. Neighbouring ids get different
  * schemes, so a street of new homes alternates colours.

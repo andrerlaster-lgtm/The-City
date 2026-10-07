@@ -20,6 +20,8 @@ import { OVERLAY_ORDER, overlayTints, type OverlayKind } from '../render/overlay
 import { FixedStepper } from './loop';
 import { watchReducedMotion } from './motion';
 import { ToastStore } from './toasts';
+import { clockOf, cycleStrength, dayLightAt } from '../render/lighting';
+import { BALANCE } from '../data/balance';
 
 /** What the UI shows about the tile under the cursor. */
 export interface HoverInfo {
@@ -54,6 +56,8 @@ export class Game {
   private readonly stepper = new FixedStepper();
   private lastSpeed: 1 | 2 | 3 = 1;
   private started = false;
+  /** Time of day shown on the map (0–1); held while paused, reset when the city changes. */
+  private dayClock: number | null = null;
   /** Called after every simulation tick (the save service autosaves from here). */
   onTick: ((tick: number) => void) | null = null;
   /** Called after the player changes the city or the speed (the save service autosaves from here). */
@@ -81,6 +85,7 @@ export class Game {
     this.hoveredTile = null;
     this.stepper.advance(0, 0);
     this.current = sim;
+    this.dayClock = null;
     if (options.paused) this.pauseForLoad();
     else this.lastSpeed = sim.getSpeed() === 0 ? this.lastSpeed : sim.getSpeed() as 1 | 2 | 3;
     if (this.started) this.renderer.rebuildWorld(sim.getWorld(), sim.getBuildings());
@@ -98,9 +103,9 @@ export class Game {
       const speed = this.sim.getSpeed();
       if (speed !== 0) this.lastSpeed = speed;
       const count = this.stepper.advance(ticker.deltaMS, speed);
-      if (count === 0) return;
       for (let i = 0; i < count; i++) this.onTick?.(this.sim.tick().tick);
-      this.publish();
+      if (count > 0) this.publish();
+      this.updateDayLight(speed);
     });
     attachKeyboardPan(camera, this.renderer.app.ticker);
     attachHover(camera, this.renderer.app.canvas, this.renderer.screenToMap, world.width, world.height, (tile) => this.onHover(tile));
@@ -123,6 +128,12 @@ export class Game {
     window.addEventListener('keydown', keydown);
     const detachTools = this.detachTools;
     this.detachTools = () => { detachTools?.(); window.removeEventListener('keydown', keydown); };
+  }
+
+  /** Day and night on the map, from the sim clock plus progress towards the next hour. */
+  private updateDayLight(speed: 0 | 1 | 2 | 3): void {
+    if (speed !== 0 || this.dayClock === null) this.dayClock = clockOf(this.sim.getTick(), this.stepper.progress(speed), BALANCE.time.ticksPerDay);
+    this.renderer.setDayLight(dayLightAt(this.dayClock, cycleStrength(speed === 0 ? this.lastSpeed : speed, this.reducedMotion.get())));
   }
 
   setSpeed(speed: 0 | 1 | 2 | 3): void {

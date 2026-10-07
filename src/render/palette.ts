@@ -30,6 +30,8 @@ export const PALETTE = {
   lotGround: 0xc9ad8c,
   door: 0x9a7b8f,
   slateRoof: 0x8fa3b8,
+  /** Lit windows in the evening (render/lighting.ts). */
+  windowLit: 0xffd98a,
   shadow: 0x1a2219,
   highlight: 0xfff6dc,
   /** Road-access hints and map markers. */

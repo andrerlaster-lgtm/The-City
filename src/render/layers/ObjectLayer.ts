@@ -8,7 +8,7 @@ import { TreeKind } from '../../data/terrain';
 import type { WorldMap } from '../../sim/world/World';
 import type { TreeTexture } from '../art/treeArt';
 import type { BuildingTexture } from '../art/buildingArt';
-import { buildingTextureKey } from '../art/buildingSchemes';
+import { buildingTextureKey, lightsKey } from '../art/buildingSchemes';
 import type { BuildingInstance } from '../../sim/buildings/buildings';
 import { buildingDefinition } from '../../data/buildings';
 import { footprintBottom } from '../cameraMath';
@@ -22,7 +22,12 @@ export class ObjectLayer {
   readonly container = new Container({ label: 'objects', sortableChildren: true });
   private trees = new Map<number, Sprite>();
   private buildings = new Map<number, Sprite>();
+  /** Evening window light per connected building, drawn just above it (not tinted). */
+  private lights = new Map<number, Sprite>();
   private selected: number | null = null;
+  /** The current day/night tint and window glow (see render/lighting.ts). */
+  private tint = 0xffffff;
+  private glow = 0;
 
   constructor(private readonly treeTextures: Map<TreeKind, TreeTexture>, private readonly buildingTextures: Map<string, BuildingTexture>) {}
 
@@ -30,6 +35,7 @@ export class ObjectLayer {
     this.container.removeChildren().forEach((c) => c.destroy());
     this.trees.clear();
     this.buildings.clear();
+    this.lights.clear();
     for (let i = 0; i < world.trees.length; i++) this.applyTree(world, i);
     this.applyBuildings(buildings);
   }
@@ -39,8 +45,9 @@ export class ObjectLayer {
 
   applyBuildings(buildings: readonly BuildingInstance[]): void {
     for (const child of [...this.container.children]) if (child.label.startsWith('building-outline-')) child.destroy();
-    for (const sprite of this.buildings.values()) { this.container.removeChild(sprite); sprite.destroy(); }
+    for (const sprite of [...this.buildings.values(), ...this.lights.values()]) { this.container.removeChild(sprite); sprite.destroy(); }
     this.buildings.clear();
+    this.lights.clear();
     for (const building of buildings) {
       const definition = buildingDefinition(building.defId);
       if (!definition) continue;
@@ -52,10 +59,41 @@ export class ObjectLayer {
       sprite.position.set(bottom.x, bottom.y);
       sprite.zIndex = depthOf(building.x + definition.size - 1, building.y + definition.size - 1, 3);
       sprite.cullable = true;
+      sprite.tint = this.tint;
       this.buildings.set(building.id, sprite);
       this.container.addChild(sprite);
+      const lit = building.connected ? this.buildingTextures.get(lightsKey(definition.art)) : undefined;
+      if (lit) {
+        const light = new Sprite(lit.texture);
+        light.anchor.set(0.5, lit.anchorY);
+        light.position.copyFrom(sprite.position);
+        light.zIndex = sprite.zIndex + 0.5;
+        light.cullable = true;
+        light.eventMode = 'none';
+        this.showLight(light);
+        this.lights.set(building.id, light);
+        this.container.addChild(light);
+      }
     }
     this.setSelected(this.selected);
+  }
+
+  /** Applies the day/night tint to trees and buildings and the evening glow to windows. */
+  setDayLight(tint: number, glow: number): void {
+    if (tint !== this.tint) {
+      this.tint = tint;
+      for (const sprite of this.trees.values()) sprite.tint = tint;
+      for (const sprite of this.buildings.values()) sprite.tint = tint;
+    }
+    if (glow !== this.glow) {
+      this.glow = glow;
+      for (const light of this.lights.values()) this.showLight(light);
+    }
+  }
+
+  private showLight(light: Sprite): void {
+    light.alpha = this.glow;
+    light.visible = this.glow > 0.02;
   }
 
   setSelected(id: number | null): void {
@@ -99,6 +137,7 @@ export class ObjectLayer {
     sprite.scale.set(variant & 1 ? scale : -scale, scale);
     sprite.zIndex = depthOf(x, y, 2);
     sprite.cullable = true;
+    sprite.tint = this.tint;
     if (!existing) {
       this.trees.set(index, sprite);
       this.container.addChild(sprite);
