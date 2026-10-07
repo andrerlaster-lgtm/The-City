@@ -39,3 +39,8 @@ idb-keyval (saves) · Vitest. Deploys to Vercel as a static site (private previe
 - [ ] M5 — Citizens (first full gameplay loop)
 - [ ] M6 — Save and load
 - [ ] M7 — Polish and deploy
+
+## License
+
+© 2026 Andre Laster. All rights reserved. The source is public for viewing
+only; no license is granted to copy, modify or distribute it.
