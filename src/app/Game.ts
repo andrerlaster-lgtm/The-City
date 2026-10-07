@@ -22,6 +22,7 @@ import { watchReducedMotion } from './motion';
 import { ToastStore } from './toasts';
 import { clockOf, cycleStrength, dayLightAt } from '../render/lighting';
 import { occupancyRatios } from '../render/occupancy';
+import { connectionFeedback, placementFeedback } from '../render/feedback';
 import { BALANCE } from '../data/balance';
 
 /** What the UI shows about the tile under the cursor. */
@@ -140,6 +141,17 @@ export class Game {
     this.detachTools = () => { detachTools?.(); window.removeEventListener('keydown', keydown); };
   }
 
+  /** Floating text over what a command changed: what a new building adds, and connections made or cut. */
+  private showFeedback(changed: readonly number[], connectedBefore: ReadonlyMap<number, boolean>, placed: boolean): void {
+    const buildings = this.sim.getBuildings();
+    const building = placed ? buildings.find((b) => b.id === changed[0]) : undefined;
+    const added = building && placementFeedback(building, buildings);
+    if (building && added) this.renderer.showFeedback(building.id, added, buildingDefinition(building.defId)?.size ?? 1);
+    // A long road can connect a whole street: stagger the labels and cap them.
+    connectionFeedback(changed, connectedBefore, buildings).slice(0, 8)
+      .forEach(({ id, feedback }, i) => this.renderer.showFeedback(id, feedback, undefined, 120 * i));
+  }
+
   /** Lived-in details and window brightness follow who lives and works where. */
   private refreshOccupancy(): void {
     this.occupancyDay = Math.floor(this.sim.getTick() / BALANCE.time.ticksPerDay);
@@ -217,12 +229,14 @@ export class Game {
     const command = tool === 'road' ? { type: 'place-roads' as const, tiles }
       : tool === 'demolish' ? { type: 'demolish' as const, tiles }
         : { type: 'place-building' as const, defId: tool.build, x: last?.x ?? 0, y: last?.y ?? 0 };
+    const connectedBefore = new Map(this.sim.getBuildings().map((b) => [b.id, b.connected]));
     const result = this.sim.applyCommand(command);
     if (result.ok) {
       this.renderer.refreshTiles(this.sim.getWorld(), result.changedTiles);
       this.renderer.refreshBuildings(this.sim.getWorld(), this.sim.getBuildings(), result.changedTiles);
       this.refreshOccupancy();
       if (command.type === 'place-building') this.renderer.animateBuildingIn(result.changedBuildings[0]!);
+      this.showFeedback(result.changedBuildings, connectedBefore, command.type === 'place-building');
       if (doomed) {
         for (const building of doomed.buildings) this.renderer.dust(building.tiles, building.size);
         this.renderer.dust(doomed.roads, 0.6);

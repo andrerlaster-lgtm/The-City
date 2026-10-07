@@ -21,6 +21,7 @@ import { RoadLayer } from './layers/RoadLayer';
 import { TerrainLayer } from './layers/TerrainLayer';
 import { SkyLayer } from './layers/SkyLayer';
 import type { DayLight } from './lighting';
+import type { Feedback } from './feedback';
 import { PALETTE } from './palette';
 import { BUILDINGS, type BuildingDefinition } from '../data/buildings';
 import type { BuildingInstance } from '../sim/buildings/buildings';
@@ -184,7 +185,19 @@ export class Renderer {
   /** Pop-in for a building that was just placed (call after refreshBuildings). */
   animateBuildingIn(id: number): void {
     const sprite = this.objects?.buildingSprite(id);
-    if (sprite) this.effects.popIn(sprite);
+    if (sprite) this.effects.popIn(sprite, this.objects?.extraSprites(id));
+  }
+
+  /**
+   * Says what a change did above a building: floating text, plus a ring across its
+   * footprint when `size` is given (a newly placed building). `delay` staggers several.
+   */
+  showFeedback(id: number, feedback: Feedback, size?: number, delay = 0): void {
+    const sprite = this.objects?.buildingSprite(id);
+    if (!sprite) return;
+    const top = sprite.y - sprite.texture.height * sprite.anchor.y;
+    this.effects.floatText(sprite.x, top + 34, feedback.text, feedback.tone, delay);
+    if (size !== undefined) this.effects.ring(sprite.x, sprite.y - (size * TILE_HEIGHT) / 2, size, feedback.tone);
   }
 
   /** Dust over demolished tiles; `size` is larger for bigger buildings. */
